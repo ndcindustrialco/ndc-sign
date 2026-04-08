@@ -1,9 +1,23 @@
 @import "tailwindcss";
 
+/* ============================================================
+   NDC Industrial Design System — CSS Variables
+   ============================================================ */
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #F1F3F5;
+  --foreground: #212529;
+  --primary: #0F1059;
+  --primary-hover: #1A1B7A;
+  --secondary: #F1F3F5;
+  --accent: #ADB5BD;
+  --border: #E5E7EB;
+  --success: #198754;
+  --warning: #FFC107;
+  --danger: #DC3545;
 }
+
 
 @theme inline {
   --color-background: var(--background);
@@ -12,15 +26,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }

@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  documents     Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+enum DocumentStatus {
+  DRAFT       // uploaded, fields placed, not yet sent
+  PENDING     // sent to signers, waiting for signatures
+  COMPLETED   // all signers have signed
+  VOIDED      // owner cancelled
+}
+
+model Document {
+  id                String         @id @default(cuid())
+  name              String
+  storagePath       String
+  mimeType          String
+  size              Int
+  status            DocumentStatus @default(DRAFT)
+  uploadedBy        String
+  user              User           @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  fields            DocumentField[]
+  signers           Signer[]
+  auditEvents       AuditEvent[]
+  signedStoragePath String?
+  documentHash      String?
+  signedAt          DateTime?
+  voidedAt          DateTime?
+  voidReason        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([uploadedBy])
+  @@index([status])
+}
+
+enum SignerRole {
+  SIGNER
+}
+
+enum SignerStatus {
+  PENDING
+  WAITING   // waiting for earlier signingOrder group
+  OPENED
+  SIGNED
+  DECLINED
+}
+
+model Signer {
+  id            String       @id @default(cuid())
+  documentId    String
+  document      Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  role          SignerRole   @default(SIGNER)
+  signingOrder  Int          @default(1)
+  order         Int
+  status        SignerStatus @default(PENDING)
+  declineReason String?
+  isStub        Boolean      @default(false) // true = party added in editor, email not yet filled
+  token         SignerToken?
+  submissions   FieldSubmission[]
+  fields        DocumentField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([documentId, order])
+  @@index([documentId])
+  @@index([email])
+}
+
+model SignerToken {
+  id        String    @id @default(cuid())
+  signerId  String    @unique
+  signer    Signer    @relation(fields: [signerId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+enum FieldType {
+  SIGNATURE
+  INITIALS
+  TEXT
+  DATE
+  NUMBER
+  IMAGE
+  CHECKBOX
+  RADIO
+  SELECT
+  FILE
+  STAMP
+  PHONE
+  CELLS
+}
+
+model DocumentField {
+  id          String            @id @default(cuid())
+  documentId  String
+  document    Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signerId    String?
+  signer      Signer?           @relation(fields: [signerId], references: [id], onDelete: SetNull)
+  type        FieldType
+  page        Int
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  label       String?
+  required    Boolean           @default(true)
+  options     String[]
+  groupId     String?
+  submissions FieldSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([signerId])
+}
+
+model FieldSubmission {
+  id        String        @id @default(cuid())
+  signerId  String
+  fieldId   String
+  signer    Signer        @relation(fields: [signerId], references: [id], onDelete: Cascade)
+  field     DocumentField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  value     String
+
+  createdAt DateTime @default(now())
+
+  @@unique([signerId, fieldId])
+}
+
+model SavedSignature {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  dataUrl   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+enum AuditEventType {
+  DOCUMENT_CREATED
+  DOCUMENT_SENT
+  DOCUMENT_COMPLETED
+  DOCUMENT_VOIDED
+  SIGNER_INVITED
+  SIGNER_OPENED
+  SIGNER_SIGNED
+  SIGNER_DECLINED
+  SIGNER_REINVITED
+}
+
+model AuditEvent {
+  id           String         @id @default(cuid())
+  documentId   String
+  document     Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type         AuditEventType
+  actorEmail   String?
+  actorName    String?
+  meta         Json?
+  auditHash    String?        // SHA-256 hash of this event's content
+  previousHash String?        // hash of the previous event (chain link)
+  createdAt    DateTime       @default(now())
+
+  @@index([documentId])
+  @@index([type])
+}

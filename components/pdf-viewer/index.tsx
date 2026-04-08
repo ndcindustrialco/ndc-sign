@@ -1,0 +1,432 @@
+"use client"
+
+import { useRef, useState, useTransition, useEffect } from "react"
+import dynamic from "next/dynamic"
+import type { FieldItem, FieldType } from "@/lib/actions/field"
+import { createField, updateField, deleteField } from "@/lib/actions/field"
+import { FIELD_DEFAULTS } from "@/lib/field-constants"
+import FieldItemComponent from "./field-item"
+import FieldPanel, { SIGNER_COLORS } from "./field-panel"
+import FieldPropertiesPanel from "@/components/field-properties-panel"
+
+const PdfDocument = dynamic(
+ () => import("react-pdf").then((m) => ({ default: m.Document })),
+ { ssr: false }
+)
+const PdfPage = dynamic(
+ () => import("react-pdf").then((m) => ({ default: m.Page })),
+ { ssr: false }
+)
+
+if (typeof window !== "undefined") {
+ import("react-pdf").then(({ pdfjs }) => {
+ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
+ })
+}
+
+export type PdfViewerSigner = {
+ id: string
+ name: string
+}
+
+interface PdfViewerProps {
+ documentId: string
+ url: string
+ initialFields: FieldItem[]
+ signers?: PdfViewerSigner[]
+ onAddSigner: () => void
+ onRemoveSigner: (id: string) => void
+}
+
+// ---------------------------------------------------------------------------
+// PageFieldLayer — must be defined at module level to keep stable identity
+// ---------------------------------------------------------------------------
+
+interface PageFieldLayerProps {
+ pageNum: number
+ pageWidth: number
+ cursor: string
+ fields: FieldItem[]
+ selectedId: string | null
+ signerColorMap: Map<string, string>
+ onPageClick: (e: React.MouseEvent<HTMLDivElement>) => void
+ onSelect: (id: string) => void
+ onTap: (id: string) => void
+ onUpdate: (id: string, patch: Partial<Pick<FieldItem, "x" | "y" | "width" | "height">>) => void
+ onUpdateCommit: (id: string) => void
+ onDelete: (id: string) => void
+ onRegisterRef: (pageNum: number, el: HTMLDivElement | null) => void
+}
+
+function PageFieldLayer({
+ pageNum,
+ pageWidth,
+ cursor,
+ fields,
+ selectedId,
+ signerColorMap,
+ onPageClick,
+ onSelect,
+ onTap,
+ onUpdate,
+ onUpdateCommit,
+ onDelete,
+ onRegisterRef,
+}: PageFieldLayerProps) {
+ const containerRef = useRef<HTMLDivElement>(null)
+ const pageFields = fields.filter((f) => f.page === pageNum)
+
+ return (
+ <div
+ ref={(el) => {
+ containerRef.current = el
+ onRegisterRef(pageNum, el)
+ }}
+ className={`relative mb-4 shadow-md ${cursor}`}
+ onClick={onPageClick}
+ >
+ <PdfPage
+ pageNumber={pageNum}
+ width={pageWidth}
+ renderAnnotationLayer={false}
+ renderTextLayer={false}
+ />
+ <div className="absolute inset-0 pointer-events-none">
+ {pageFields.map((field) => (
+ <FieldItemComponent
+ key={field.id}
+ field={field}
+ containerRef={containerRef}
+ isSelected={selectedId === field.id}
+ onSelect={onSelect}
+ onTap={onTap}
+ onUpdate={onUpdate}
+ onUpdateCommit={onUpdateCommit}
+ onDelete={onDelete}
+ signerColor={field.signerId ? signerColorMap.get(field.signerId) : undefined}
+ />
+ ))}
+ </div>
+ </div>
+ )
+}
+
+// ---------------------------------------------------------------------------
+// PdfViewer
+// ---------------------------------------------------------------------------
+
+export default function PdfViewer({
+ documentId,
+ url,
+ initialFields,
+ signers = [],
+ onAddSigner,
+ onRemoveSigner,
+}: PdfViewerProps) {
+ const containerRef = useRef<HTMLDivElement>(null)
+ const [fields, setFields] = useState<FieldItem[]>(initialFields)
+ const fieldsRef = useRef<FieldItem[]>(initialFields)
+
+ const [selectedType, setSelectedType] = useState<FieldType | null>(null)
+ const [selectedId, setSelectedId] = useState<string | null>(null)
+ const [selectedSignerId, setSelectedSignerId] = useState<string | null>(null)
+ const [mobileManualOpen, setMobileManualOpen] = useState(false)
+
+ const [numPages, setNumPages] = useState(1)
+ const [pageWidth, setPageWidth] = useState(794)
+ const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+ const [, startTransition] = useTransition()
+
+ const signerColorMap = new Map(
+ signers.map((s, i) => [s.id, SIGNER_COLORS[i % SIGNER_COLORS.length]!.dot])
+ )
+
+ const panelSigners = signers.map((s, i) => ({
+ id: s.id,
+ name: s.name,
+ color: SIGNER_COLORS[i % SIGNER_COLORS.length]!.dot,
+ }))
+
+ useEffect(() => {
+ if (containerRef.current) {
+ setPageWidth(Math.min(containerRef.current.clientWidth, 794))
+ }
+ }, [])
+
+ const onDocumentLoad = ({ numPages: n }: { numPages: number }) => {
+ setNumPages(n)
+ if (containerRef.current) {
+ setPageWidth(Math.min(containerRef.current.clientWidth, 794))
+ }
+ }
+
+ const handleTypeChange = (type: FieldType, signerId: string | null) => {
+ setSelectedType(type)
+ setSelectedSignerId(signerId)
+ setSelectedId(null)
+ // On mobile: auto-close the sheet so the user can tap the PDF to place the field
+ setMobileManualOpen(false)
+ }
+
+ const handleRegisterRef = (pageNum: number, el: HTMLDivElement | null) => {
+ if (el) pageRefs.current.set(pageNum, el)
+ else pageRefs.current.delete(pageNum)
+ }
+
+ const handlePageClick = (pageNum: number) => (e: React.MouseEvent<HTMLDivElement>) => {
+ if (selectedId) { setSelectedId(null); return }
+ if (!selectedType) return
+
+ const rect = e.currentTarget.getBoundingClientRect()
+ const x = ((e.clientX - rect.left) / rect.width) * 100
+ const y = ((e.clientY - rect.top) / rect.height) * 100
+
+ const { width, height } = FIELD_DEFAULTS[selectedType]
+ const fx = Math.max(0, Math.min(100 - width, x - width / 2))
+ const fy = Math.max(0, Math.min(100 - height, y - height / 2))
+
+ const isPlaceholder = selectedSignerId?.startsWith("placeholder-") ?? false
+ const dbSignerId = isPlaceholder ? undefined : (selectedSignerId ?? undefined)
+ const displaySignerId = selectedSignerId ?? null
+
+ const optimistic: FieldItem = {
+ id: `optimistic-${Date.now()}`,
+ signerId: displaySignerId,
+ type: selectedType,
+ page: pageNum,
+ x: fx, y: fy, width, height,
+ label: null, required: true,
+ options: [], groupId: null,
+ }
+
+ setFields((prev) => { const next = [...prev, optimistic]; fieldsRef.current = next; return next })
+
+ startTransition(async () => {
+ const result = await createField({
+ documentId,
+ signerId: dbSignerId,
+ type: selectedType,
+ page: pageNum,
+ x: fx, y: fy, width, height,
+ required: true,
+ options: [],
+ })
+ if (result.ok) {
+ const fieldWithColor: FieldItem = { ...result.data, signerId: displaySignerId }
+ setFields((prev) => { const next = prev.map((f) => f.id === optimistic.id ? fieldWithColor : f); fieldsRef.current = next; return next })
+ setSelectedId(result.data.id)
+ } else {
+ setFields((prev) => { const next = prev.filter((f) => f.id !== optimistic.id); fieldsRef.current = next; return next })
+ }
+ })
+ }
+
+ const handleUpdate = (id: string, patch: Partial<Pick<FieldItem, "x" | "y" | "width" | "height">>) => {
+ setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, ...patch } : f); fieldsRef.current = next; return next })
+ }
+
+ const handleUpdateCommit = (id: string) => {
+ const field = fieldsRef.current.find((f) => f.id === id)
+ if (!field || field.id.startsWith("optimistic-")) return
+ startTransition(async () => { await updateField({ id, x: field.x, y: field.y, width: field.width, height: field.height }) })
+ }
+
+ const handleDelete = (id: string) => {
+ setFields((prev) => { const next = prev.filter((f) => f.id !== id); fieldsRef.current = next; return next })
+ setSelectedId(null)
+ if (!id.startsWith("optimistic-")) startTransition(async () => { await deleteField(id) })
+ }
+
+ const handleLabelChange = (id: string, label: string | null) => {
+ setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, label } : f); fieldsRef.current = next; return next })
+ }
+
+ const handleRequiredChange = (id: string, required: boolean) => {
+ setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, required } : f); fieldsRef.current = next; return next })
+ }
+
+ const handleFieldSignerChange = (id: string, signerId: string | null) => {
+ setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, signerId } : f); fieldsRef.current = next; return next })
+ }
+
+ const selectedField = selectedId ? (fields.find((f) => f.id === selectedId) ?? null) : null
+ const cursor = selectedType ? "cursor-crosshair" : "cursor-default"
+
+ // Show bottom sheet when manually opened, or when a field is selected for editing.
+ // Do NOT show it when selectedType is active but sheet is closed (placement mode — status bar handles that).
+ const showMobilePanel = mobileManualOpen || !!selectedField
+
+ const rightPanel = selectedField ? (
+ <FieldPropertiesPanel
+ key={selectedField.id}
+ field={selectedField}
+ signers={panelSigners}
+ onLabelChange={handleLabelChange}
+ onRequiredChange={handleRequiredChange}
+ onSignerChange={handleFieldSignerChange}
+ onDelete={handleDelete}
+ onClose={() => { setSelectedId(null); setMobileManualOpen(false) }}
+ />
+ ) : (
+ <FieldPanel
+ selectedType={selectedType}
+ onTypeChange={handleTypeChange}
+ signers={panelSigners}
+ selectedSignerId={selectedSignerId}
+ onSignerChange={(id) => { setSelectedSignerId(id) }}
+ onAddSigner={onAddSigner}
+ onRemoveSigner={onRemoveSigner}
+ />
+ )
+
+ return (
+ <div className="flex h-full flex-col overflow-hidden bg-white lg:flex-row">
+ {/* ── PDF area ──────────────────────────────────────────────────────── */}
+ <div className="flex flex-1 flex-col overflow-hidden">
+ {/* Mobile panel toggle FAB */}
+ <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-3 py-1.5 lg:hidden">
+ {numPages > 1 && (
+ <div className="flex items-center gap-1">
+ <span className="text-xs text-zinc-500">Page:</span>
+ {Array.from({ length: numPages }, (_, i) => i + 1).map((p) => (
+ <button
+ key={p}
+ onClick={() => pageRefs.current.get(p)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+ className="rounded px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-200"
+ >
+ {p}
+ </button>
+ ))}
+ </div>
+ )}
+ <div className="ml-auto flex items-center gap-2">
+ {/* Properties button — only when a field is selected */}
+ {selectedField && (
+ <button
+ onClick={() => setMobileManualOpen(true)}
+ className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
+ >
+ <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+ </svg>
+ Properties
+ </button>
+ )}
+ {/* Add Fields button */}
+ <button
+ onClick={() => { setSelectedId(null); setMobileManualOpen((prev) => !prev) }}
+ className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
+ >
+ <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+ </svg>
+ {selectedType ? selectedType : "Fields"}
+ </button>
+ </div>
+ </div>
+
+ {/* Page nav bar — desktop only */}
+ {numPages > 1 && (
+ <div className="hidden items-center gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-2 lg:flex">
+ <span className="text-xs text-zinc-500">Page:</span>
+ {Array.from({ length: numPages }, (_, i) => i + 1).map((p) => (
+ <button
+ key={p}
+ onClick={() => pageRefs.current.get(p)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+ className="rounded px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-200"
+ >
+ {p}
+ </button>
+ ))}
+ </div>
+ )}
+
+ {/* Scroll area */}
+ <div
+ ref={containerRef}
+ className="flex-1 overflow-y-auto bg-zinc-200"
+ onClick={() => setSelectedId(null)}
+ >
+ <div className="flex flex-col items-center py-4">
+ <PdfDocument
+ file={url}
+ onLoadSuccess={onDocumentLoad}
+ loading={<div className="flex h-96 items-center justify-center text-sm text-zinc-400">Loading PDF…</div>}
+ error={<div className="flex h-40 items-center justify-center text-sm text-red-500">Failed to load PDF.</div>}
+ >
+ {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+ <PageFieldLayer
+ key={pageNum}
+ pageNum={pageNum}
+ pageWidth={pageWidth}
+ cursor={cursor}
+ fields={fields}
+ selectedId={selectedId}
+ signerColorMap={signerColorMap}
+ onPageClick={handlePageClick(pageNum)}
+ onSelect={(id) => { setSelectedId(id) }}
+ onTap={(id) => { setSelectedId(id) }}
+ onUpdate={handleUpdate}
+ onUpdateCommit={handleUpdateCommit}
+ onDelete={handleDelete}
+ onRegisterRef={handleRegisterRef}
+ />
+ ))}
+ </PdfDocument>
+ </div>
+ </div>
+
+ {/* Status bar — shown when a field type is selected and the bottom sheet is closed */}
+ {selectedType && !mobileManualOpen && (
+ <div className="flex items-center gap-2 border-t border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700 sm:px-4">
+ <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500 shrink-0" />
+ <span>Tap the PDF to place a </span>
+ <strong>{selectedType}</strong>
+ <span className="hidden sm:inline"> field</span>
+ <button
+ onClick={() => { setSelectedType(null); setSelectedSignerId(null) }}
+ className="ml-auto font-medium text-blue-500 hover:text-blue-700"
+ >
+ Cancel
+ </button>
+ </div>
+ )}
+ </div>
+
+ {/* ── Desktop: Right panel ───────────────────────────────────────────── */}
+ <div className="hidden lg:flex">
+ {rightPanel}
+ </div>
+
+ {/* ── Mobile: Bottom sheet (no backdrop — never blocks PDF) ────────── */}
+ {showMobilePanel && (
+ <>
+ <div className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl lg:hidden">
+ {/* Drag handle */}
+ <div className="flex justify-center pt-3 pb-1">
+ <div className="h-1 w-10 rounded-full bg-zinc-200" />
+ </div>
+ <div className="flex items-center justify-between px-4 pb-2 pt-1">
+ <span className="text-sm font-semibold text-zinc-900">
+ {selectedField ? "Field Properties" : "Add Fields"}
+ </span>
+ <button
+ onClick={() => { setMobileManualOpen(false); setSelectedId(null) }}
+ className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"
+ >
+ <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+ </svg>
+ </button>
+ </div>
+ {/* Render the panel without its fixed width */}
+ <div className="w-full">
+ {rightPanel}
+ </div>
+ </div>
+ </>
+ )}
+ </div>
+ )
+}
