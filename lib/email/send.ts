@@ -58,6 +58,10 @@ export async function sendSignedNotification(opts: {
   documentName: string
   documentUrl: string
   signedAt: Date
+  /** Raw bytes of the signed PDF to attach */
+  signedPdfBytes?: Uint8Array | null
+  /** Raw bytes of the audit certificate PDF to attach */
+  auditPdfBytes?: Uint8Array | null
 }): Promise<void> {
   const html = renderSignedNotificationEmail({
     ownerName: opts.ownerName,
@@ -67,6 +71,25 @@ export async function sendSignedNotification(opts: {
     documentUrl: opts.documentUrl,
     signedAt: opts.signedAt,
   })
+
+  const attachments: import("./graph-client").GraphMailAttachment[] = []
+  const safeName = opts.documentName.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "document"
+
+  if (opts.signedPdfBytes) {
+    attachments.push({
+      name: `${safeName} - Signed.pdf`,
+      contentType: "application/pdf",
+      bytes: opts.signedPdfBytes,
+    })
+  }
+  if (opts.auditPdfBytes) {
+    attachments.push({
+      name: `${safeName} - Audit Certificate.pdf`,
+      contentType: "application/pdf",
+      bytes: opts.auditPdfBytes,
+    })
+  }
+
   await sendGraphMail({
     userAccessToken: opts.userAccessToken,
     fromEmail: opts.ownerEmail,
@@ -75,6 +98,7 @@ export async function sendSignedNotification(opts: {
     htmlBody: html,
     toAddress: opts.ownerEmail,
     toName: opts.ownerName,
+    attachments: attachments.length > 0 ? attachments : undefined,
   })
 }
 

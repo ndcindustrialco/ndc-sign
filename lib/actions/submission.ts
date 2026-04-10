@@ -233,6 +233,36 @@ export async function submitSignature(
   const now = new Date()
   const userAccessToken = await getOwnerAccessToken(signer.document.uploadedBy)
 
+  // Generate audit PDF for attachment
+  let notificationAuditPdfBytes: Uint8Array | null = null
+  if (signedPdfBytes) {
+    try {
+      const doc = await prisma.document.findUnique({
+        where: { id: signer.documentId },
+        select: {
+          documentHash: true,
+          signers: { select: { name: true, email: true, status: true }, orderBy: { order: "asc" } },
+        },
+      })
+      if (doc) {
+        const { createHash } = await import("crypto")
+        const signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
+        notificationAuditPdfBytes = await generateAuditPdf({
+          documentName,
+          documentHash: doc.documentHash,
+          signedDocumentHash,
+          ownerEmail,
+          ownerName,
+          signers: doc.signers,
+          auditEvents: await getAuditEvents(signer.documentId),
+          completedAt: now,
+        })
+      }
+    } catch (err) {
+      console.error("[submitSignature] Audit PDF for signed-notification failed:", err)
+    }
+  }
+
   // Notify owner via Inngest (with retry)
   await inngest.send({
     name: "email/signed-notification",
@@ -245,6 +275,8 @@ export async function submitSignature(
       documentName,
       documentUrl,
       signedAt: now,
+      signedPdfBytes: signedPdfBytes ? Array.from(signedPdfBytes) : undefined,
+      auditPdfBytes: notificationAuditPdfBytes ? Array.from(notificationAuditPdfBytes) : undefined,
     },
   })
 

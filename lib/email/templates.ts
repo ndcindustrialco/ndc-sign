@@ -142,6 +142,7 @@ export function renderSignedNotificationEmail(data: SignedNotificationData): str
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.signerName)}</span>
       (${escapeHtml(data.signerEmail)}) has signed
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
+      The signed PDF and audit certificate are attached.
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">

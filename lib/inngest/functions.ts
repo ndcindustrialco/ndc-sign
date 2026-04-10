@@ -58,7 +58,8 @@ export const sendSigningInviteFunction = inngest.createFunction(
 export const sendSignedNotificationFunction = inngest.createFunction(
   { id: "send-signed-notification", retries: 3, triggers: [{ event: "email/signed-notification" }] },
   async ({ event }) => {
-    const data = reviveDates(event.data, ["signedAt"])
+    let data = reviveDates(event.data, ["signedAt"])
+    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
     await sendSignedNotification(data as Parameters<typeof sendSignedNotification>[0])
     return { sent: true }
   }
