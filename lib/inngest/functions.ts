@@ -26,6 +26,23 @@ function reviveDates<T extends Record<string, unknown>>(
 }
 
 // ---------------------------------------------------------------------------
+// Helper: revive Uint8Array fields that were serialized as number[] via JSON
+// ---------------------------------------------------------------------------
+
+function reviveBytes<T extends Record<string, unknown>>(
+  data: T,
+  keys: string[]
+): T {
+  const copy: Record<string, unknown> = { ...data }
+  for (const key of keys) {
+    if (key in copy && Array.isArray(copy[key])) {
+      copy[key] = new Uint8Array(copy[key] as number[])
+    }
+  }
+  return copy as T
+}
+
+// ---------------------------------------------------------------------------
 // Inngest functions with automatic retry (v4 API: 2-arg createFunction)
 // ---------------------------------------------------------------------------
 
@@ -50,7 +67,8 @@ export const sendSignedNotificationFunction = inngest.createFunction(
 export const sendCompletedNotificationFunction = inngest.createFunction(
   { id: "send-completed-notification", retries: 3, triggers: [{ event: "email/completed-notification" }] },
   async ({ event }) => {
-    const data = reviveDates(event.data, ["completedAt"])
+    let data = reviveDates(event.data, ["completedAt"])
+    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
     await sendCompletedNotification(data as Parameters<typeof sendCompletedNotification>[0])
     return { sent: true }
   }
@@ -59,7 +77,8 @@ export const sendCompletedNotificationFunction = inngest.createFunction(
 export const sendSignerCopyFunction = inngest.createFunction(
   { id: "send-signer-copy", retries: 3, triggers: [{ event: "email/signer-copy" }] },
   async ({ event }) => {
-    const data = reviveDates(event.data, ["signedAt"])
+    let data = reviveDates(event.data, ["signedAt"])
+    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
     await sendSignerCopy(data as Parameters<typeof sendSignerCopy>[0])
     return { sent: true }
   }

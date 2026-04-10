@@ -234,21 +234,19 @@ export async function submitSignature(
   const userAccessToken = await getOwnerAccessToken(signer.document.uploadedBy)
 
   // Notify owner via Inngest (with retry)
-  if (userAccessToken) {
-    await inngest.send({
-      name: "email/signed-notification",
-      data: {
-        userAccessToken,
-        ownerEmail,
-        ownerName,
-        signerName: signer.name,
-        signerEmail: signer.email,
-        documentName,
-        documentUrl,
-        signedAt: now,
-      },
-    })
-  }
+  await inngest.send({
+    name: "email/signed-notification",
+    data: {
+      userAccessToken: userAccessToken ?? "",
+      ownerEmail,
+      ownerName,
+      signerName: signer.name,
+      signerEmail: signer.email,
+      documentName,
+      documentUrl,
+      signedAt: now,
+    },
+  })
 
   await triggerNextSigningGroup(signer.documentId, signer.signingOrder)
 
@@ -287,7 +285,7 @@ export async function submitSignature(
         await inngest.send({
           name: "email/signer-copy",
           data: {
-            userAccessToken,
+            userAccessToken: userAccessToken ?? "",
             ownerEmail,
             ownerName,
             signerName: signer.name,
@@ -299,8 +297,8 @@ export async function submitSignature(
           },
         })
       }
-    } catch {
-      // PDF generation failed — skip signer copy
+    } catch (err) {
+      console.error("[submitSignature] Interim signer copy failed:", err)
     }
   }
 
@@ -326,7 +324,7 @@ export async function submitSignature(
         },
       })
 
-      if (completedDoc && userAccessToken) {
+      if (completedDoc) {
         const auditEvents = await getAuditEvents(signer.documentId)
 
         let signedDocumentHash: string | null = null
@@ -353,7 +351,7 @@ export async function submitSignature(
         await inngest.send({
           name: "email/completed-notification",
           data: {
-            userAccessToken,
+            userAccessToken: userAccessToken ?? "",
             ownerEmail,
             ownerName,
             documentName,
@@ -371,7 +369,7 @@ export async function submitSignature(
           await inngest.send({
             name: "email/signer-copy",
             data: {
-              userAccessToken,
+              userAccessToken: userAccessToken ?? "",
               ownerEmail,
               ownerName,
               signerName: s.name,
@@ -384,8 +382,8 @@ export async function submitSignature(
           })
         }
       }
-    } catch {
-      // PDF generation failed — emails will not be sent
+    } catch (err) {
+      console.error("[submitSignature] Completed notification failed:", err)
     }
   }
 
