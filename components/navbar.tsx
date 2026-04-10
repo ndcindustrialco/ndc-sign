@@ -74,7 +74,7 @@ export default function Navbar({ userName, userEmail, userImage }: NavbarProps) 
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all"
                 style={{
                   color: active ? "var(--primary, #0F1059)" : "#64748b",
-                  background: active ? "rgba(15,16,89,0.07)" : "transparent",
+                  background: active ? "#ffffff" : "transparent",
                 }}
               >
                 {item.icon}
@@ -99,12 +99,12 @@ export default function Navbar({ userName, userEmail, userImage }: NavbarProps) 
                 <img
                   src={userImage}
                   alt=""
-                  className="h-7 w-7 rounded-full object-cover ring-2 ring-slate-200"
+                  className="h-7 w-7 rounded-full object-cover ring-2 "
                 />
               ) : (
                 <span
                   className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-white"
-                  style={{ background: "var(--primary, #0F1059)" }}
+                  style={{ background: "var(--primary, #ffffff)" }}
                 >
                   {initials}
                 </span>

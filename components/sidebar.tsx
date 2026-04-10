@@ -90,13 +90,13 @@ const SidebarContent = ({
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-900">
+    <div className="flex h-full flex-col border-r border-slate-200 bg-white">
       {/* Logo */}
-      <div className={`flex h-14 items-center border-b border-slate-700/50 ${collapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+      <div className={`flex h-14 items-center border-b border-slate-200 ${collapsed ? "justify-center px-2" : "justify-between px-4"}`}>
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <Image src="/favicon.ico" alt="" width={28} height={28} className="rounded" />
-            <span className="text-sm font-bold tracking-widest uppercase text-white">
+            <span className="text-sm font-bold tracking-widest uppercase text-slate-800">
               NDC e-Sign
             </span>
           </Link>
@@ -109,7 +109,7 @@ const SidebarContent = ({
         {/* Collapse toggle - desktop only */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto hidden h-7 w-7 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 lg:flex"
+          className="ml-auto hidden h-7 w-7 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 lg:flex"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ const SidebarContent = ({
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
         {!collapsed && (
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
             เมนู Menu
           </p>
         )}
@@ -136,14 +136,14 @@ const SidebarContent = ({
               title={collapsed ? item.label : undefined}
               className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  ? "bg-slate-100 text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               } ${collapsed ? "justify-center" : ""}`}
             >
               {item.icon}
               {!collapsed && <span>{item.label}</span>}
               {!collapsed && active && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500" />
               )}
             </Link>
           )
@@ -151,11 +151,11 @@ const SidebarContent = ({
 
         {/* Feedback section */}
         {!collapsed && (
-          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
             อื่นๆ Others
           </p>
         )}
-        {collapsed && <div className="my-2 border-t border-slate-700/50" />}
+        {collapsed && <div className="my-2 border-t border-slate-200" />}
 
         {/* Feedback - visible to all users */}
         {(() => {
@@ -167,14 +167,14 @@ const SidebarContent = ({
               title={collapsed ? FEEDBACK_NAV.label : undefined}
               className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  ? "bg-slate-100 text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               } ${collapsed ? "justify-center" : ""}`}
             >
               {FEEDBACK_NAV.icon}
               {!collapsed && <span>{FEEDBACK_NAV.label}</span>}
               {!collapsed && active && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500" />
               )}
             </Link>
           )
@@ -190,14 +190,14 @@ const SidebarContent = ({
               title={collapsed ? FEEDBACK_MANAGE_NAV.label : undefined}
               className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  ? "bg-slate-100 text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               } ${collapsed ? "justify-center" : ""}`}
             >
               {FEEDBACK_MANAGE_NAV.icon}
               {!collapsed && <span>{FEEDBACK_MANAGE_NAV.label}</span>}
               {!collapsed && active && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500" />
               )}
             </Link>
           )
@@ -205,27 +205,27 @@ const SidebarContent = ({
       </nav>
 
       {/* User section */}
-      <div className="border-t border-slate-700/50 px-3 py-3">
+      <div className="border-t border-slate-200 px-3 py-3">
         <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${collapsed ? "justify-center" : ""}`}>
           {userImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={userImage}
               alt=""
-              className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-slate-600"
+              className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-slate-200"
             />
           ) : (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
               {initials}
             </span>
           )}
           {!collapsed && (
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-xs font-semibold text-slate-200">
+              <span className="truncate text-xs font-semibold text-slate-800">
                 {userName ?? userEmail ?? "User"}
               </span>
               {userName && userEmail && (
-                <span className="truncate text-[11px] text-slate-500">{userEmail}</span>
+                <span className="truncate text-[11px] text-slate-400">{userEmail}</span>
               )}
             </div>
           )}
@@ -233,7 +233,7 @@ const SidebarContent = ({
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           title={collapsed ? "ออกจากระบบ Sign out" : undefined}
-          className={`mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-500 transition-all hover:bg-white/5 hover:text-slate-300 ${collapsed ? "justify-center" : ""}`}
+          className={`mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 transition-all hover:bg-slate-50 hover:text-slate-700 ${collapsed ? "justify-center" : ""}`}
         >
           <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
