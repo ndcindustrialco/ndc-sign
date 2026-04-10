@@ -7,10 +7,10 @@ import { deleteDocument } from "@/lib/actions/document"
 import type { DocumentItem } from "@/lib/actions/document"
 
 const STATUS_LABEL: Record<string, string> = {
- DRAFT: "Draft",
- PENDING: "Pending",
- COMPLETED: "Completed",
- VOIDED: "Voided",
+ DRAFT: "แบบร่าง Draft",
+ PENDING: "รอดำเนินการ Pending",
+ COMPLETED: "เสร็จแล้ว Completed",
+ VOIDED: "ยกเลิก Voided",
 }
 
 const STATUS_CLASS: Record<string, string> = {
@@ -100,7 +100,7 @@ export default function DocumentList({
          </svg>
          <input
            type="text"
-           placeholder="Search documents…"
+           placeholder="ค้นหาเอกสาร Search documents…"
            value={search}
            onChange={(e) => setSearch(e.target.value)}
            onBlur={handleSearch}
@@ -114,7 +114,7 @@ export default function DocumentList({
          className="rounded-lg bg-white px-3 py-2.5 text-sm outline-none"
          style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
        >
-         <option value="ALL">All statuses</option>
+         <option value="ALL">ทุกสถานะ All statuses</option>
          {ALL_STATUSES.map((s) => (
            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
          ))}
@@ -130,19 +130,19 @@ export default function DocumentList({
                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
            </svg>
          </div>
-         <p className="text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>No documents yet</p>
-         <p className="mt-1 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Upload your first PDF to get started</p>
+         <p className="text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>ยังไม่มีเอกสาร No documents yet</p>
+         <p className="mt-1 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>อัปโหลด PDF แรกเพื่อเริ่มต้น Upload your first PDF to get started</p>
          <Link
            href="/dashboard/upload"
            className="mt-5 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
            style={{ background: "var(--primary, #0F1059)" }}
          >
-           Upload document
+           อัปโหลดเอกสาร Upload document
          </Link>
        </div>
      ) : documents.length === 0 ? (
        <div className="rounded-xl border-2 border-dashed py-14 text-center" style={{ borderColor: "var(--border, #E5E7EB)" }}>
-         <p className="text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>No documents match your filters.</p>
+         <p className="text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>ไม่พบเอกสารที่ตรงกับตัวกรอง No documents match your filters.</p>
        </div>
      ) : (
        <>
@@ -173,9 +173,9 @@ export default function DocumentList({
                </div>
                <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--border, #E5E7EB)" }}>
                  <span className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
-                   {doc.totalSigners === 0 ? "No signers" : (
+                   {doc.totalSigners === 0 ? "ไม่มีผู้ลงนาม No signers" : (
                      <span style={{ color: doc.signedCount === doc.totalSigners ? "var(--success, #198754)" : "var(--accent, #ADB5BD)" }}>
-                       {doc.signedCount}/{doc.totalSigners} signed
+                       {doc.signedCount}/{doc.totalSigners} ลงนามแล้ว signed
                      </span>
                    )}
                  </span>
@@ -185,14 +185,14 @@ export default function DocumentList({
                      className="text-xs font-medium"
                      style={{ color: "var(--primary, #0F1059)" }}
                    >
-                     View →
+                     ดู View →
                    </Link>
                    <button
                      onClick={() => setConfirmId(doc.id)}
                      className="text-xs font-medium"
                      style={{ color: "var(--danger, #DC3545)" }}
                    >
-                     Delete
+                     ลบ Delete
                    </button>
                  </div>
                </div>
@@ -205,11 +205,11 @@ export default function DocumentList({
            <table className="w-full text-sm">
              <thead>
                <tr style={{ borderBottom: "1px solid var(--border, #E5E7EB)", background: "var(--secondary, #F1F3F5)" }}>
-                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Name</th>
-                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Size</th>
-                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Status</th>
-                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Signers</th>
-                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Uploaded</th>
+                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ชื่อ Name</th>
+                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ขนาด Size</th>
+                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>สถานะ Status</th>
+                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ผู้ลงนาม Signers</th>
+                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>อัปโหลดเมื่อ Uploaded</th>
                  <th className="px-4 py-3" />
                </tr>
              </thead>
@@ -254,14 +254,14 @@ export default function DocumentList({
                          className="text-xs font-medium transition-opacity hover:opacity-70"
                          style={{ color: "var(--primary, #0F1059)" }}
                        >
-                         View →
+                         ดู View →
                        </Link>
                        <button
                          onClick={() => setConfirmId(doc.id)}
                          className="text-xs font-medium transition-opacity hover:opacity-70"
                          style={{ color: "var(--danger, #DC3545)" }}
                        >
-                         Delete
+                         ลบ Delete
                        </button>
                      </div>
                    </td>
@@ -275,7 +275,7 @@ export default function DocumentList({
          {totalPages > 1 && (
            <div className="mt-4 flex items-center justify-between">
              <p className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
-               Page {currentPage} of {totalPages}
+               หน้า Page {currentPage} / {totalPages}
              </p>
              <div className="flex gap-2">
                <button
@@ -284,7 +284,7 @@ export default function DocumentList({
                  className="rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40"
                  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
                >
-                 Previous
+                 ก่อนหน้า Prev
                </button>
                <button
                  onClick={() => navigate({ page: currentPage + 1 })}
@@ -292,7 +292,7 @@ export default function DocumentList({
                  className="rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40"
                  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
                >
-                 Next
+                 ถัดไป Next
                </button>
              </div>
            </div>
@@ -316,10 +316,10 @@ export default function DocumentList({
                </svg>
              </div>
              <h3 className="text-base font-semibold" style={{ color: "var(--foreground, #212529)" }}>
-               Delete document?
+               ลบเอกสาร? Delete document?
              </h3>
              <p className="mt-1.5 text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
-               This will permanently delete the document, all fields, and signer data. This action cannot be undone.
+               จะลบเอกสาร ฟิลด์ และข้อมูลผู้ลงนามทั้งหมดถาวร ไม่สามารถกู้คืนได้
              </p>
              <div className="mt-5 flex gap-2">
                <button
@@ -328,7 +328,7 @@ export default function DocumentList({
                  className="flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 disabled:opacity-40"
                  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
                >
-                 Cancel
+                 ยกเลิก Cancel
                </button>
                <button
                  onClick={() => handleDelete(confirmId)}
@@ -342,7 +342,7 @@ export default function DocumentList({
                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                    </svg>
                  )}
-                 Delete
+                 ลบ Delete
                </button>
              </div>
            </div>

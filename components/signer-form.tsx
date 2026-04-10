@@ -40,7 +40,7 @@ export default function SignerForm({ documentId, onAdded }: SignerFormProps) {
 
  return (
  <form onSubmit={handleSubmit} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
- <p className="mb-3 text-sm font-medium text-zinc-700">Add Recipient</p>
+ <p className="mb-3 text-sm font-medium text-zinc-700">เพิ่มผู้ลงนาม Add Recipient</p>
 
  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
  {/* People picker — takes up remaining space */}
@@ -50,7 +50,7 @@ export default function SignerForm({ documentId, onAdded }: SignerFormProps) {
 
  {/* Signing order */}
  <div className="flex items-center gap-1.5">
- <label className="text-xs text-zinc-500 whitespace-nowrap">Order</label>
+ <label className="text-xs text-zinc-500 whitespace-nowrap">ลำดับ Order</label>
  <input
  type="number"
  min={1}
@@ -68,12 +68,12 @@ export default function SignerForm({ documentId, onAdded }: SignerFormProps) {
  disabled={!person || isPending}
  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
  >
- {isPending ? "Adding…" : "Add"}
+ {isPending ? "กำลังเพิ่ม…" : "เพิ่ม Add"}
  </button>
  </div>
 
  <p className="mt-2 text-xs text-zinc-400">
- Same order number = sign in parallel. Lower number = signs first.
+ ลำดับเดียวกัน = เซ็นพร้อมกัน ลำดับน้อยกว่า = เซ็นก่อน
  </p>
 
  {error && (

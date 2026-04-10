@@ -117,19 +117,19 @@ function IconAddPerson() {
 type FieldEntry = { type: FieldType; label: string; icon: React.ReactNode; disabled?: boolean }
 
 const FIELDS: FieldEntry[] = [
- { type: "TEXT", label: "Text", icon: <IconText /> },
- { type: "SIGNATURE", label: "Signature", icon: <IconSignature /> },
- { type: "INITIALS", label: "Initials", icon: <IconInitials /> },
- { type: "DATE", label: "Date", icon: <IconDate /> },
- { type: "NUMBER", label: "Number", icon: <IconNumber /> },
- { type: "IMAGE", label: "Image", icon: <IconImage /> },
- { type: "CHECKBOX", label: "Checkbox", icon: <IconCheckbox /> },
- { type: "RADIO", label: "Multiple", icon: <IconMultiple /> },
- { type: "FILE", label: "File", icon: <IconFile /> },
- { type: "SELECT", label: "Select", icon: <IconSelect /> },
- { type: "CELLS", label: "Cells", icon: <IconCells /> },
- { type: "STAMP", label: "Stamp", icon: <IconStamp /> },
- { type: "PHONE", label: "Phone", icon: <IconPhone />, disabled: true },
+ { type: "TEXT", label: "ข้อความ Text", icon: <IconText /> },
+ { type: "SIGNATURE", label: "ลายเซ็น Sign", icon: <IconSignature /> },
+ { type: "INITIALS", label: "ชื่อย่อ Init", icon: <IconInitials /> },
+ { type: "DATE", label: "วันที่ Date", icon: <IconDate /> },
+ { type: "NUMBER", label: "ตัวเลข Num", icon: <IconNumber /> },
+ { type: "IMAGE", label: "รูป Image", icon: <IconImage /> },
+ { type: "CHECKBOX", label: "เลือก Check", icon: <IconCheckbox /> },
+ { type: "RADIO", label: "ตัวเลือก Multi", icon: <IconMultiple /> },
+ { type: "FILE", label: "ไฟล์ File", icon: <IconFile /> },
+ { type: "SELECT", label: "เลือก Select", icon: <IconSelect /> },
+ { type: "CELLS", label: "ช่อง Cells", icon: <IconCells /> },
+ { type: "STAMP", label: "ตรา Stamp", icon: <IconStamp /> },
+ { type: "PHONE", label: "โทร Phone", icon: <IconPhone />, disabled: true },
 ]
 
 // Signer color palette
@@ -142,7 +142,7 @@ export const SIGNER_COLORS = [
  { dot: "#ec4899" }, // pink
 ]
 
-const PARTY_LABEL = ["First Party", "Second Party", "Third Party", "Fourth Party", "Fifth Party", "Sixth Party"]
+const PARTY_LABEL = ["ฝ่ายที่ 1 First Party", "ฝ่ายที่ 2 Second Party", "ฝ่ายที่ 3 Third Party", "ฝ่ายที่ 4 Fourth Party", "ฝ่ายที่ 5 Fifth Party", "ฝ่ายที่ 6 Sixth Party"]
 
 export default function FieldPanel({
  selectedType,
@@ -188,7 +188,7 @@ export default function FieldPanel({
  </span>
  </>
  ) : (
- <span className="flex-1 text-sm text-zinc-400">Select party</span>
+ <span className="flex-1 text-sm text-zinc-400">เลือกฝ่าย Select party</span>
  )}
  {/* Plus / chevron icon */}
  <span className="flex h-5 w-5 items-center justify-center rounded text-zinc-400">
@@ -257,7 +257,7 @@ export default function FieldPanel({
  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-zinc-400 transition hover:bg-zinc-50"
  >
  <IconAddPerson />
- <span>Add {PARTY_LABEL[signers.length] ?? `Party ${signers.length + 1}`}</span>
+ <span>เพิ่ม {PARTY_LABEL[signers.length] ?? `ฝ่ายที่ ${signers.length + 1}`}</span>
  </button>
  </div>
  )}
@@ -296,15 +296,15 @@ export default function FieldPanel({
  <ul className="space-y-1 text-[11px] text-zinc-400">
  <li className="flex items-start gap-1.5">
  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300" />
- Draw a text field on the page with a mouse
+ วาดฟิลด์ข้อความบนหน้าด้วยเมาส์ Draw text field with mouse
  </li>
  <li className="flex items-start gap-1.5">
  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300" />
- Drag &amp; drop any other field type on the page
+ ลากวางฟิลด์อื่นบนหน้า Drag &amp; drop other fields
  </li>
  <li className="flex items-start gap-1.5">
  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300" />
- Click on the field type above to start drawing it
+ คลิกประเภทฟิลด์ด้านบนเพื่อเริ่มวาด Click type above to draw
  </li>
  </ul>
  </div>

@@ -30,10 +30,10 @@ export default function DownloadSignedPdfButton({ documentId, signedAt, document
  <div className="flex items-center justify-between gap-4">
  <div>
  <p className="text-sm font-semibold text-green-800">
- Signed PDF ready
+ PDF ที่ลงนามพร้อมแล้ว Signed PDF ready
  </p>
  <p className="mt-0.5 text-xs text-green-600">
- Signed on {new Intl.DateTimeFormat("en-GB", {
+ ลงนามเมื่อ Signed on {new Intl.DateTimeFormat("en-GB", {
  day: "2-digit", month: "short", year: "numeric",
  hour: "2-digit", minute: "2-digit",
  }).format(new Date(signedAt))}
@@ -52,7 +52,7 @@ export default function DownloadSignedPdfButton({ documentId, signedAt, document
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
  </svg>
- {isPending ? "Preparing…" : "Download"}
+ {isPending ? "กำลังเตรียม…" : "ดาวน์โหลด Download"}
  </button>
  </div>
  {error && (

@@ -49,7 +49,7 @@ export default function RecipientsDrawer({ documentId, initialSigners }: Recipie
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
  </svg>
- Recipients
+ ผู้ลงนาม Recipients
  {(signers.length + newSigners.filter((n) => !signers.find((s) => s.id === n.id)).length) > 0 && (
  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-xs font-medium text-white">
  {signers.length + newSigners.filter((n) => !signers.find((s) => s.id === n.id)).length}
@@ -74,9 +74,9 @@ export default function RecipientsDrawer({ documentId, initialSigners }: Recipie
  {/* Header */}
  <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
  <div>
- <h2 className="text-base font-semibold text-zinc-900">Recipients</h2>
+ <h2 className="text-base font-semibold text-zinc-900">ผู้ลงนาม Recipients</h2>
  <p className="mt-0.5 text-xs text-zinc-500">
- Add signers and copy their secure signing links.
+ เพิ่มผู้ลงนามและคัดลอกลิงก์ Add signers and copy their links.
  </p>
  </div>
  <button

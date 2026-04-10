@@ -11,9 +11,9 @@ interface FieldToolbarProps {
 }
 
 const TYPES: { value: FieldType; label: string; icon: string }[] = [
- { value: "SIGNATURE", label: "Signature", icon: "✍️" },
- { value: "TEXT", label: "Text", icon: "T" },
- { value: "DATE", label: "Date", icon: "📅" },
+ { value: "SIGNATURE", label: "ลายเซ็น Sign", icon: "✍️" },
+ { value: "TEXT", label: "ข้อความ Text", icon: "T" },
+ { value: "DATE", label: "วันที่ Date", icon: "📅" },
 ]
 
 export default function FieldToolbar({
@@ -27,7 +27,7 @@ export default function FieldToolbar({
  <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-2">
  {/* Field type selector */}
  <div className="flex items-center gap-1">
- <span className="mr-2 text-xs font-medium text-zinc-500">Add field:</span>
+ <span className="mr-2 text-xs font-medium text-zinc-500">เพิ่มฟิลด์ Add field:</span>
  {TYPES.map((t) => (
  <button
  key={t.value}

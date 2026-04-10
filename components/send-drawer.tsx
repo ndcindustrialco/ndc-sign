@@ -48,18 +48,18 @@ function makeRow(): PartyRow {
 }
 
 const PARTY_LABELS = [
- "First Party",
- "Second Party",
- "Third Party",
- "Fourth Party",
- "Fifth Party",
- "Sixth Party",
+ "ฝ่ายที่ 1 First Party",
+ "ฝ่ายที่ 2 Second Party",
+ "ฝ่ายที่ 3 Third Party",
+ "ฝ่ายที่ 4 Fourth Party",
+ "ฝ่ายที่ 5 Fifth Party",
+ "ฝ่ายที่ 6 Sixth Party",
 ]
 
 const STEP_LABELS: Record<Step, string> = {
- 1: "Recipients",
- 2: "Signing Order",
- 3: "Email",
+ 1: "ผู้ลงนาม Recipients",
+ 2: "ลำดับ Order",
+ 3: "อีเมล Email",
 }
 
 // ---------------------------------------------------------------------------
@@ -143,8 +143,8 @@ function Step1Recipients({
  <div className="flex flex-col gap-3">
  <p className="text-sm text-zinc-500">
  {locked
- ? "Fill in the email for each party added in the editor."
- : "Add the people who need to sign this document."}
+ ? "กรอกอีเมลให้แต่ละฝ่ายที่เพิ่มไว้ Fill in the email for each party."
+ : "เพิ่มผู้ที่ต้องลงนาม Add the people who need to sign."}
  </p>
 
  {rows.map((row, idx) => {
@@ -192,7 +192,7 @@ function Step1Recipients({
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
  </svg>
- + Add {PARTY_LABELS[rows.length] ?? `Party ${rows.length + 1}`}
+ + เพิ่ม {PARTY_LABELS[rows.length] ?? `ฝ่ายที่ ${rows.length + 1}`}
  </button>
  )}
  </div>
@@ -215,7 +215,7 @@ function Step2Order({
  return (
  <div className="flex flex-col gap-4">
  <p className="text-sm text-zinc-500">
- Choose how recipients will be asked to sign.
+ เลือกวิธีให้ผู้ลงนามเซ็น Choose how recipients sign.
  </p>
 
  {/* Mode cards */}
@@ -236,9 +236,9 @@ function Step2Order({
  d="M17 8l4 4m0 0l-4 4m4-4H3" />
  </svg>
  <div>
- <p className="text-sm font-semibold">All at once</p>
+ <p className="text-sm font-semibold">พร้อมกัน All at once</p>
  <p className={`mt-0.5 text-xs leading-snug ${mode === "parallel" ? "text-zinc-300" : "text-zinc-400"}`}>
- All recipients receive their invite at the same time.
+ ทุกคนได้รับเชิญพร้อมกัน All receive invites at once.
  </p>
  </div>
  </button>
@@ -259,9 +259,9 @@ function Step2Order({
  d="M3 7h6m0 0l3 3m-3-3l3-3M9 7h12M3 17h6m0 0l3 3m-3-3l3-3M9 17h12" />
  </svg>
  <div>
- <p className="text-sm font-semibold">In order</p>
+ <p className="text-sm font-semibold">ตามลำดับ In order</p>
  <p className={`mt-0.5 text-xs leading-snug ${mode === "sequential" ? "text-zinc-300" : "text-zinc-400"}`}>
- Each person is notified only after the previous one signs.
+ แจ้งทีละคนหลังคนก่อนหน้าเซ็นแล้ว Notified after the previous signs.
  </p>
  </div>
  </button>
@@ -271,7 +271,7 @@ function Step2Order({
  <div className="rounded-xl border border-zinc-200 bg-zinc-50">
  <div className="border-b border-zinc-200 px-4 py-2.5">
  <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
- Signing sequence
+ ลำดับการลงนาม Signing sequence
  </p>
  </div>
  <ul className="divide-y divide-zinc-100">
@@ -297,7 +297,7 @@ function Step2Order({
  </>
  ) : (
  <p className="truncate text-sm italic text-zinc-400">
- {label} — email to be filled on send
+ {label} — รอกรอกอีเมล email to be filled
  </p>
  )}
  </div>
@@ -335,12 +335,12 @@ function Step3Email({
  return (
  <div className="flex flex-col gap-4">
  <p className="text-sm text-zinc-500">
- Customize the invitation email that will be sent to each recipient.
+ ปรับแต่งอีเมลเชิญที่จะส่งให้ผู้ลงนาม Customize the invite email.
  </p>
 
  <div className="flex flex-col gap-1.5">
  <label className="text-xs font-medium text-zinc-600">
- Email Subject
+ หัวข้ออีเมล Email Subject
  </label>
  <input
  type="text"
@@ -353,14 +353,14 @@ function Step3Email({
 
  <div className="flex flex-col gap-1.5">
  <label className="text-xs font-medium text-zinc-600">
- Message <span className="font-normal text-zinc-400">(optional)</span>
+ ข้อความ Message <span className="font-normal text-zinc-400">(ไม่บังคับ optional)</span>
  </label>
  <textarea
  value={message}
  onChange={(e) => onMessageChange(e.target.value)}
  maxLength={2000}
  rows={5}
- placeholder={`Hi,\n\nPlease review and sign "${documentName}" at your earliest convenience.\n\nThank you.`}
+ placeholder={`สวัสดี\n\nกรุณาตรวจสอบและลงนามเอกสาร "${documentName}"\n\nขอบคุณ`}
  className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-zinc-900"
  />
  <p className="text-right text-[11px] text-zinc-400">{message.length}/2000</p>
@@ -369,11 +369,11 @@ function Step3Email({
  {/* Preview hint */}
  <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
  <p className="text-xs text-zinc-500">
- <strong className="text-zinc-700">Subject:</strong> {subject || `Please sign: ${documentName}`}
+ <strong className="text-zinc-700">หัวข้อ Subject:</strong> {subject || `กรุณาลงนาม: ${documentName}`}
  </p>
  {message && (
  <p className="mt-1 text-xs text-zinc-500 line-clamp-2">
- <strong className="text-zinc-700">Message:</strong> {message}
+ <strong className="text-zinc-700">ข้อความ Message:</strong> {message}
  </p>
  )}
  </div>
@@ -396,7 +396,7 @@ export default function SendDrawer({
  const [step, setStep] = useState<Step>(1)
  const [rows, setRows] = useState<PartyRow[]>([makeRow()])
  const [mode, setMode] = useState<SigningMode>("parallel")
- const [subject, setSubject] = useState(`Please sign: ${documentName}`)
+ const [subject, setSubject] = useState(`กรุณาลงนาม Please sign: ${documentName}`)
  const [message, setMessage] = useState("")
  const [error, setError] = useState<string | null>(null)
  const [isPending, startTransition] = useTransition()
@@ -416,7 +416,7 @@ export default function SendDrawer({
  setStep(1)
  setRows(buildInitialRows())
  setMode("parallel")
- setSubject(`Please sign: ${documentName}`)
+ setSubject(`กรุณาลงนาม Please sign: ${documentName}`)
  setMessage("")
  setError(null)
  }
@@ -440,16 +440,16 @@ export default function SendDrawer({
 
  // Step 1 validation
  function validateStep1(): string | null {
- if (filledRows.length === 0) return "Please add at least one recipient."
+ if (filledRows.length === 0) return "กรุณาเพิ่มผู้ลงนามอย่างน้อย 1 คน Please add at least one recipient."
  const emails = filledRows.map((r) => r.person!.email.toLowerCase())
  const unique = new Set(emails)
- if (unique.size !== emails.length) return "Duplicate email addresses are not allowed."
+ if (unique.size !== emails.length) return "อีเมลซ้ำ ใช้อีเมลเดียวกันไม่ได้ Duplicate emails not allowed."
  return null
  }
 
  // Step 3 validation
  function validateStep3(): string | null {
- if (!subject.trim()) return "Email subject is required."
+ if (!subject.trim()) return "ต้องระบุหัวข้ออีเมล Email subject is required."
  return null
  }
 
@@ -520,7 +520,7 @@ export default function SendDrawer({
  <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-4 sm:px-6">
  <div>
  <h2 className="text-base font-semibold text-zinc-900">
- Send for Signing
+ ส่งลงนาม Send for Signing
  </h2>
  <p className="mt-0.5 truncate max-w-xs text-xs text-zinc-400">{documentName}</p>
  </div>
@@ -575,7 +575,7 @@ export default function SendDrawer({
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
  </svg>
- Back
+ กลับ Back
  </button>
  ) : (
  <button
@@ -583,7 +583,7 @@ export default function SendDrawer({
  onClick={onClose}
  className="rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
  >
- Cancel
+ ยกเลิก Cancel
  </button>
  )}
 
@@ -594,7 +594,7 @@ export default function SendDrawer({
  onClick={handleNext}
  className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700"
  >
- Continue
+ ต่อไป Continue
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
  </svg>
@@ -612,7 +612,7 @@ export default function SendDrawer({
  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
  </svg>
- Sending…
+ กำลังส่ง…
  </>
  ) : (
  <>
@@ -620,7 +620,7 @@ export default function SendDrawer({
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
  </svg>
- Send Invites
+ ส่งเชิญ Send Invites
  </>
  )}
  </button>
@@ -630,8 +630,8 @@ export default function SendDrawer({
  {/* Signer count summary */}
  {filledRows.length > 0 && (
  <p className="mt-3 text-center text-xs text-zinc-400">
- {filledRows.length} recipient{filledRows.length !== 1 ? "s" : ""} ·{" "}
- {mode === "parallel" ? "signing simultaneously" : "signing in order"}
+ {filledRows.length} ผู้ลงนาม recipient{filledRows.length !== 1 ? "s" : ""} ·{" "}
+ {mode === "parallel" ? "เซ็นพร้อมกัน simultaneously" : "เซ็นตามลำดับ in order"}
  </p>
  )}
  </div>

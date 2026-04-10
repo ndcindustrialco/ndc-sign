@@ -155,18 +155,18 @@ export default function SignaturePad({
  {/* eslint-disable-next-line @next/next/no-img-element */}
  <img src={savedSignature} alt="Saved signature" className="h-30 w-full object-contain p-2" />
  <span className="absolute right-2 top-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
- Saved
+ บันทึกแล้ว Saved
  </span>
  </div>
  <div className="flex items-center justify-between">
  <button type="button" onClick={clearSaved} className="text-xs text-zinc-500 hover:text-zinc-900">
- Use a different signature
+ ใช้ลายเซ็นอื่น Use different signature
  </button>
  </div>
  {onSaveChange && (
  <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-500 select-none">
  <input type="checkbox" checked={saveChecked} onChange={(e) => onSaveChange(e.target.checked)} className="rounded" />
- Update saved signature
+ อัปเดตลายเซ็นที่บันทึก Update saved signature
  </label>
  )}
  </div>
@@ -188,7 +188,7 @@ export default function SignaturePad({
  : "text-zinc-500 hover:text-zinc-700"
  }`}
  >
- {t === "draw" ? "✍️ Draw" : "T Type"}
+ {t === "draw" ? "✍️ วาด Draw" : "T พิมพ์ Type"}
  </button>
  ))}
  </div>
@@ -209,17 +209,17 @@ export default function SignaturePad({
  />
  {drawIsEmpty && !disabled && (
  <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-zinc-400 select-none">
- Draw your signature here
+ วาดลายเซ็นที่นี่ Draw your signature here
  </p>
  )}
  </div>
  <div className="flex items-center justify-between">
  <button type="button" onClick={clearDraw} disabled={drawIsEmpty || disabled} className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-30">
- Clear
+ ล้าง Clear
  </button>
  {savedSignature && (
  <button type="button" onClick={useSaved} className="text-xs font-medium text-blue-600 hover:text-blue-700">
- Use saved signature
+ ใช้ลายเซ็นที่บันทึกไว้ Use saved
  </button>
  )}
  </div>
@@ -234,7 +234,7 @@ export default function SignaturePad({
  type="text"
  value={typedText}
  onChange={(e) => setTypedText(e.target.value)}
- placeholder="Type your name…"
+ placeholder="พิมพ์ชื่อ Type your name…"
  disabled={disabled}
  className="w-full border-none bg-transparent px-3 pt-3 text-sm outline-none placeholder:text-zinc-400"
  />
@@ -243,7 +243,7 @@ export default function SignaturePad({
  className="h-18 overflow-hidden px-3 pb-2"
  style={{ fontFamily: selectedFont, fontSize: "36px", color: "#1a1a1a", lineHeight: "70px" }}
  >
- {typedText || <span style={{ fontSize: "14px", color: "#a1a1aa", fontFamily: "inherit" }}>Preview</span>}
+ {typedText || <span style={{ fontSize: "14px", color: "#a1a1aa", fontFamily: "inherit" }}>ตัวอย่าง Preview</span>}
  </div>
  </div>
  {/* Hidden canvas used to convert typed text to PNG */}
@@ -268,11 +268,11 @@ export default function SignaturePad({
  </div>
  <div className="flex items-center justify-between">
  <button type="button" onClick={() => setTypedText("")} disabled={!typedText || disabled} className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-30">
- Clear
+ ล้าง Clear
  </button>
  {savedSignature && (
  <button type="button" onClick={useSaved} className="text-xs font-medium text-blue-600 hover:text-blue-700">
- Use saved signature
+ ใช้ลายเซ็นที่บันทึกไว้ Use saved
  </button>
  )}
  </div>
@@ -283,7 +283,7 @@ export default function SignaturePad({
  {onSaveChange && (
  <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-500 select-none">
  <input type="checkbox" checked={saveChecked} onChange={(e) => onSaveChange(e.target.checked)} className="rounded" />
- Save signature for future documents
+ บันทึกลายเซ็นไว้ใช้ต่อ Save for future documents
  </label>
  )}
  </div>

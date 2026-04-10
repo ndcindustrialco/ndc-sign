@@ -1,6 +1,8 @@
 "use client"
 
-import Navbar from "@/components/navbar"
+import { useState } from "react"
+import Sidebar from "@/components/sidebar"
+import DashboardHeader from "@/components/dashboard-header"
 
 interface DashboardShellProps {
   userName: string | null | undefined
@@ -9,13 +11,32 @@ interface DashboardShellProps {
   children: React.ReactNode
 }
 
-export default function DashboardShell({ userName, userEmail, userImage, children }: DashboardShellProps) {
+const DashboardShell = ({ userName, userEmail, userImage, children }: DashboardShellProps) => {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: "var(--background, #f8fafc)" }}>
-      <Navbar userName={userName} userEmail={userEmail} userImage={userImage} />
-      <main className="flex-1">
-        {children}
-      </main>
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--background, #f8fafc)" }}>
+      {/* Sidebar */}
+      <Sidebar
+        userName={userName}
+        userEmail={userEmail}
+        userImage={userImage}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
+
+      {/* Main area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Header with breadcrumbs */}
+        <DashboardHeader onMenuClick={() => setMobileOpen(true)} />
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
+
+export default DashboardShell

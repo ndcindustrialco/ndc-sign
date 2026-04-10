@@ -18,19 +18,19 @@ interface FieldInputProps {
 }
 
 const TYPE_LABEL: Record<FieldType, string> = {
-  SIGNATURE: "Signature",
-  INITIALS: "Initials",
-  TEXT: "Text",
-  DATE: "Date",
-  NUMBER: "Number",
-  IMAGE: "Image",
-  CHECKBOX: "Checkbox",
-  RADIO: "Multiple Choice",
-  SELECT: "Select",
-  FILE: "File Upload",
-  STAMP: "Stamp",
-  PHONE: "Phone",
-  CELLS: "Cells",
+  SIGNATURE: "ลายเซ็น Signature",
+  INITIALS: "ชื่อย่อ Initials",
+  TEXT: "ข้อความ Text",
+  DATE: "วันที่ Date",
+  NUMBER: "ตัวเลข Number",
+  IMAGE: "รูปภาพ Image",
+  CHECKBOX: "กล่องเลือก Checkbox",
+  RADIO: "ตัวเลือก Multiple Choice",
+  SELECT: "เลือก Select",
+  FILE: "อัปโหลดไฟล์ File Upload",
+  STAMP: "ตรา Stamp",
+  PHONE: "โทรศัพท์ Phone",
+  CELLS: "ช่อง Cells",
 };
 
 const TYPE_BADGE: Record<FieldType, string> = {
@@ -93,7 +93,7 @@ export default function FieldInput({
           type={type === "PHONE" ? "tel" : "text"}
           value={value ?? ""}
           onChange={(e) => onChange(fieldId, e.target.value || null)}
-          placeholder={type === "PHONE" ? "+66 8x-xxxx-xxxx" : "Type here…"}
+          placeholder={type === "PHONE" ? "+66 8x-xxxx-xxxx" : "พิมพ์ที่นี่ Type here…"}
           className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900"
         />
       )}
@@ -188,7 +188,7 @@ export default function FieldInput({
           onChange={(e) => onChange(fieldId, e.target.value || null)}
           className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900"
         >
-          <option value="">Select…</option>
+          <option value="">เลือก Select…</option>
           {(options.length > 0 ? options : []).map((opt) => (
             <option key={opt} value={opt}>
               {opt}
@@ -213,7 +213,7 @@ export default function FieldInput({
                 onClick={() => onChange(fieldId, null)}
                 className="mt-1 text-xs text-red-500 hover:text-red-700"
               >
-                Remove
+                ลบ Remove
               </button>
             </div>
           ) : (
@@ -231,7 +231,7 @@ export default function FieldInput({
                   d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.344 11.095H6.75z"
                 />
               </svg>
-              <span>Click to upload image</span>
+              <span>คลิกอัปโหลดรูป Click to upload image</span>
               <input
                 type="file"
                 accept="image/*"
@@ -269,14 +269,14 @@ export default function FieldInput({
                 />
               </svg>
               <span className="flex-1 truncate text-sm text-zinc-600">
-                File attached
+                แนบไฟล์แล้ว File attached
               </span>
               <button
                 type="button"
                 onClick={() => onChange(fieldId, null)}
                 className="text-xs text-red-500 hover:text-red-700"
               >
-                Remove
+                ลบ Remove
               </button>
             </div>
           ) : (
@@ -294,7 +294,7 @@ export default function FieldInput({
                   d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.344 11.095H6.75z"
                 />
               </svg>
-              <span>Click to upload file</span>
+              <span>คลิกอัปโหลดไฟล์ Click to upload file</span>
               <input
                 type="file"
                 className="hidden"
@@ -322,7 +322,7 @@ export default function FieldInput({
       )}
 
       {error && (
-        <p className="mt-1 text-xs text-red-500">This field is required</p>
+        <p className="mt-1 text-xs text-red-500">ต้องกรอกฟิลด์นี้ This field is required</p>
       )}
     </div>
   );

@@ -14,9 +14,9 @@ interface PageProps {
 }
 
 const REASON_MESSAGE: Record<string, string> = {
-  not_found: "This signing link is invalid or does not exist.",
-  expired: "This signing link has expired. Please request a new one.",
-  used: "This signing link has already been used.",
+  not_found: "ลิงก์ลงนามไม่ถูกต้องหรือไม่มีอยู่ This link is invalid or does not exist.",
+  expired: "ลิงก์หมดอายุ กรุณาขอใหม่ This link has expired. Please request a new one.",
+  used: "ลิงก์นี้ถูกใช้แล้ว This link has already been used.",
 };
 
 export default async function SignPage({ params }: PageProps) {
@@ -30,10 +30,10 @@ export default async function SignPage({ params }: PageProps) {
         <div className="w-full max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
           <p className="text-3xl">🔒</p>
           <h1 className="mt-3 text-lg font-semibold text-red-700">
-            Link Unavailable
+            ลิงก์ใช้ไม่ได้ Link Unavailable
           </h1>
           <p className="mt-2 text-sm text-red-600">
-            {REASON_MESSAGE[verify.reason] ?? "This link is not valid."}
+            {REASON_MESSAGE[verify.reason] ?? "ลิงก์นี้ไม่ถูกต้อง This link is not valid."}
           </p>
         </div>
       </div>
@@ -82,10 +82,10 @@ export default async function SignPage({ params }: PageProps) {
         <div className="w-full max-w-md rounded-xl border border-green-200 bg-green-50 p-8 text-center">
           <p className="text-3xl">✅</p>
           <h1 className="mt-3 text-lg font-semibold text-green-700">
-            Already Signed
+            ลงนามแล้ว Already Signed
           </h1>
           <p className="mt-2 text-sm text-green-600">
-            You have already signed this document.
+            คุณลงนามเอกสารนี้แล้ว You have already signed this document.
           </p>
         </div>
       </div>

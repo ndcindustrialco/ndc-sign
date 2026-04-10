@@ -15,12 +15,12 @@ export type EditorSigner = {
 }
 
 const PARTY_LABELS = [
- "First Party",
- "Second Party",
- "Third Party",
- "Fourth Party",
- "Fifth Party",
- "Sixth Party",
+ "ฝ่ายที่ 1 First Party",
+ "ฝ่ายที่ 2 Second Party",
+ "ฝ่ายที่ 3 Third Party",
+ "ฝ่ายที่ 4 Fourth Party",
+ "ฝ่ายที่ 5 Fifth Party",
+ "ฝ่ายที่ 6 Sixth Party",
 ]
 
 interface Props {
@@ -38,7 +38,7 @@ export default function DocumentEditorClient({
 }: Props) {
  const router = useRouter()
  const [signers, setSigners] = useState<EditorSigner[]>([
- { id: `placeholder-${Date.now()}`, name: "First Party" },
+ { id: `placeholder-${Date.now()}`, name: "ฝ่ายที่ 1 First Party" },
  ])
  const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -86,7 +86,7 @@ export default function DocumentEditorClient({
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
  </svg>
- <span className="hidden sm:inline">Back</span>
+ <span className="hidden sm:inline">กลับ Back</span>
  </Link>
 
  <div className="h-4 w-px shrink-0" style={{ background: "var(--border, #E5E7EB)" }} />
@@ -100,8 +100,8 @@ export default function DocumentEditorClient({
  className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 sm:px-4 sm:text-sm"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- <span className="sm:hidden">Send</span>
- <span className="hidden sm:inline">Send for Signing</span>
+ <span className="sm:hidden">ส่ง Send</span>
+ <span className="hidden sm:inline">ส่งลงนาม Send for Signing</span>
  </button>
  </header>
 

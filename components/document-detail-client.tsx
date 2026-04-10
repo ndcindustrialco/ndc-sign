@@ -35,10 +35,10 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
- DRAFT: "Draft",
- PENDING: "Pending",
- COMPLETED: "Completed",
- VOIDED: "Voided",
+ DRAFT: "แบบร่าง Draft",
+ PENDING: "รอดำเนินการ Pending",
+ COMPLETED: "เสร็จแล้ว Completed",
+ VOIDED: "ยกเลิก Voided",
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -74,15 +74,15 @@ function SignerStatusBadge({ status }: { status: string }) {
 // ---------------------------------------------------------------------------
 
 const AUDIT_LABELS: Record<string, string> = {
- DOCUMENT_CREATED: "Document created",
- DOCUMENT_SENT: "Sent for signing",
- DOCUMENT_COMPLETED: "All signatures collected",
- DOCUMENT_VOIDED: "Document voided",
- SIGNER_INVITED: "Signer invited",
- SIGNER_OPENED: "Signer opened",
- SIGNER_SIGNED: "Signer signed",
- SIGNER_DECLINED: "Signer declined",
- SIGNER_REINVITED: "Signer re-invited",
+ DOCUMENT_CREATED: "สร้างเอกสาร Document created",
+ DOCUMENT_SENT: "ส่งลงนาม Sent for signing",
+ DOCUMENT_COMPLETED: "ลงนามครบ All signed",
+ DOCUMENT_VOIDED: "ยกเลิกเอกสาร Document voided",
+ SIGNER_INVITED: "เชิญผู้ลงนาม Signer invited",
+ SIGNER_OPENED: "เปิดดู Signer opened",
+ SIGNER_SIGNED: "ลงนามแล้ว Signer signed",
+ SIGNER_DECLINED: "ปฏิเสธ Signer declined",
+ SIGNER_REINVITED: "เชิญซ้ำ Signer re-invited",
 }
 
 const AUDIT_DOT_COLOR: Record<string, string> = {
@@ -138,13 +138,13 @@ function VoidModal({
  </svg>
  </div>
  <h2 className="mb-1 text-base font-semibold" style={{ color: "var(--foreground, #212529)" }}>
- Void document
+ ยกเลิกเอกสาร Void document
  </h2>
  <p className="mb-4 text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
- This will cancel all pending signatures for <strong style={{ color: "var(--foreground, #212529)" }}>{documentName}</strong> and notify signers.
+ จะยกเลิกการลงนามที่รอทั้งหมดของ <strong style={{ color: "var(--foreground, #212529)" }}>{documentName}</strong> และแจ้งผู้ลงนาม
  </p>
  <label className="mb-1 block text-xs font-medium" style={{ color: "var(--foreground, #212529)" }}>
- Reason (required)
+ เหตุผล Reason (ต้องระบุ required)
  </label>
  <textarea
  value={reason}
@@ -155,7 +155,7 @@ function VoidModal({
  border: "1px solid var(--border, #E5E7EB)",
  color: "var(--foreground, #212529)",
  }}
- placeholder="e.g. Incorrect version uploaded"
+ placeholder="เช่น อัปโหลดเวอร์ชันผิด e.g. Wrong version"
  />
  <div className="mt-4 flex justify-end gap-2">
  <button
@@ -167,7 +167,7 @@ function VoidModal({
  color: "var(--foreground, #212529)",
  }}
  >
- Cancel
+ ยกเลิก Cancel
  </button>
  <button
  onClick={() => reason.trim() && onConfirm(reason.trim())}
@@ -175,7 +175,7 @@ function VoidModal({
  className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
  style={{ background: "var(--danger, #DC3545)" }}
  >
- {pending ? "Voiding…" : "Void document"}
+ {pending ? "กำลังยกเลิก…" : "ยกเลิกเอกสาร Void"}
  </button>
  </div>
  </div>
@@ -221,7 +221,7 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  >
  <span>{error}</span>
  <button onClick={() => setError(null)} className="ml-4 underline opacity-70 hover:opacity-100">
- Dismiss
+ ปิด Dismiss
  </button>
  </div>
  )}
@@ -236,11 +236,11 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  <StatusBadge status={doc.status} />
  </div>
  <p className="mt-0.5 text-sm" style={{ color: "var(--accent, #ADB5BD)" }} suppressHydrationWarning>
- Created {formatDate(doc.createdAt)} · {totalSigners} signer{totalSigners !== 1 ? "s" : ""}
+ สร้างเมื่อ Created {formatDate(doc.createdAt)} · {totalSigners} ผู้ลงนาม signer{totalSigners !== 1 ? "s" : ""}
  </p>
  {doc.status === "VOIDED" && doc.voidReason && (
  <p className="mt-1 text-sm" style={{ color: "var(--danger, #DC3545)" }}>
- Voided: {doc.voidReason}
+ ยกเลิก Voided: {doc.voidReason}
  </p>
  )}
  </div>
@@ -253,7 +253,7 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  className="rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-100"
  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
  >
- View PDF
+ ดู PDF View PDF
  </a>
  )}
  {signedPdfUrl && doc.status === "COMPLETED" && (
@@ -263,7 +263,7 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  className="rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
  style={{ background: "var(--success, #198754)" }}
  >
- Download Signed PDF
+ ดาวน์โหลด PDF ที่ลงนาม Download Signed PDF
  </a>
  )}
  {doc.status === "DRAFT" && (
@@ -272,7 +272,7 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  className="rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- Edit Fields
+ แก้ไขฟิลด์ Edit Fields
  </Link>
  )}
  {canVoid && (
@@ -281,7 +281,7 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  className="rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-red-50"
  style={{ border: "1px solid #FECACA", color: "var(--danger, #DC3545)" }}
  >
- Void
+ ยกเลิก Void
  </button>
  )}
  </div>
@@ -300,27 +300,27 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  style={{ borderBottom: "1px solid var(--border, #E5E7EB)" }}
  >
  <h2 className="text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>
- Recipients
+ ผู้ลงนาม Recipients
  </h2>
  {totalSigners > 0 && (
  <span className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
- {signedCount}/{totalSigners} signed
+ {signedCount}/{totalSigners} ลงนามแล้ว signed
  </span>
  )}
  </div>
  {doc.signers.length === 0 ? (
  <div className="px-4 py-10 text-center text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
- No recipients yet
+ ยังไม่มีผู้ลงนาม No recipients yet
  </div>
  ) : (
  <div className="overflow-x-auto">
  <table className="w-full min-w-120">
  <thead>
  <tr style={{ borderBottom: "1px solid var(--border, #E5E7EB)", background: "var(--secondary, #F1F3F5)" }}>
- <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Name</th>
- <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Email</th>
- <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Order</th>
- <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>Status</th>
+ <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ชื่อ Name</th>
+ <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>อีเมล Email</th>
+ <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ลำดับ Order</th>
+ <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>สถานะ Status</th>
  </tr>
  </thead>
  <tbody>
@@ -355,12 +355,12 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  style={{ borderBottom: "1px solid var(--border, #E5E7EB)" }}
  >
  <h2 className="text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>
- Audit trail
+ ประวัติ Audit trail
  </h2>
  </div>
  {auditEvents.length === 0 ? (
  <div className="px-4 py-10 text-center text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
- No events yet
+ ยังไม่มีเหตุการณ์ No events yet
  </div>
  ) : (
  <div className="px-4 py-4">
@@ -405,28 +405,28 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  style={{ border: "1px solid var(--border, #E5E7EB)" }}
  >
  <h3 className="mb-3 text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>
- Details
+ รายละเอียด Details
  </h3>
  <dl className="space-y-3 text-sm">
  <div>
- <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Status</dt>
+ <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>สถานะ Status</dt>
  <dd className="mt-0.5"><StatusBadge status={doc.status} /></dd>
  </div>
  <div>
- <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Created</dt>
+ <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>สร้างเมื่อ Created</dt>
  <dd className="mt-0.5" style={{ color: "var(--foreground, #212529)" }} suppressHydrationWarning>{formatDate(doc.createdAt)}</dd>
  </div>
  <div>
- <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Last updated</dt>
+ <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>แก้ไขล่าสุด Last updated</dt>
  <dd className="mt-0.5" style={{ color: "var(--foreground, #212529)" }} suppressHydrationWarning>{formatDate(doc.updatedAt)}</dd>
  </div>
  <div>
- <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Owner</dt>
+ <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>เจ้าของ Owner</dt>
  <dd className="mt-0.5" style={{ color: "var(--foreground, #212529)" }}>{doc.user.name ?? doc.user.email}</dd>
  </div>
  {doc.status === "VOIDED" && doc.voidedAt && (
  <div>
- <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Voided at</dt>
+ <dt className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>ยกเลิกเมื่อ Voided at</dt>
  <dd className="mt-0.5" style={{ color: "var(--danger, #DC3545)" }} suppressHydrationWarning>{formatDate(doc.voidedAt)}</dd>
  </div>
  )}
@@ -439,10 +439,10 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  style={{ border: "1px solid var(--border, #E5E7EB)" }}
  >
  <h3 className="mb-3 text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>
- Progress
+ ความคืบหน้า Progress
  </h3>
  <div className="mb-1.5 flex items-center justify-between text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
- <span>{signedCount} of {totalSigners} signed</span>
+ <span>{signedCount} จาก {totalSigners} ลงนามแล้ว signed</span>
  <span>{Math.round((signedCount / totalSigners) * 100)}%</span>
  </div>
  <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--secondary, #F1F3F5)" }}>

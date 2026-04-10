@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
@@ -12,12 +13,10 @@ export default function LoginPage() {
           className="flex h-12 w-12 items-center justify-center rounded-xl"
           style={{ background: "var(--primary, #0F1059)" }}
         >
-          <svg viewBox="0 0 20 20" className="h-6 w-6 fill-white" aria-hidden>
-            <polygon points="4,2 16,2 18,10 16,18 4,18 2,10" />
-          </svg>
+      <Image src="/favicon.ico" alt="" width={28} height={28} />
         </div>
         <span className="text-lg font-bold uppercase tracking-widest" style={{ color: "var(--primary, #0F1059)" }}>
-          eSign
+          e-Sign
         </span>
       </div>
 
@@ -27,10 +26,10 @@ export default function LoginPage() {
         style={{ border: "1px solid var(--border, #E5E7EB)" }}
       >
         <h1 className="mb-1 text-xl font-bold" style={{ color: "var(--foreground, #212529)" }}>
-          Sign in
+          เข้าสู่ระบบ Sign in
         </h1>
         <p className="mb-6 text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
-          Use your organization account to continue.
+          ใช้บัญชีองค์กรเพื่อดำเนินการ Use your organization account.
         </p>
         <form
           action={async () => {
@@ -49,13 +48,13 @@ export default function LoginPage() {
               <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
               <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
             </svg>
-            Sign in with Microsoft
+            เข้าสู่ระบบด้วย Microsoft Sign in with Microsoft
           </button>
         </form>
       </div>
 
       <p className="mt-6 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
-        NDC Industrial · E-Signature Platform
+        NDC Industrial · ระบบลงนามอิเล็กทรอนิกส์ E-Signature
       </p>
     </div>
   )

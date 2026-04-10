@@ -7,28 +7,28 @@ import type { PanelSigner } from "@/components/pdf-viewer/field-panel"
 import { SIGNER_COLORS } from "@/components/pdf-viewer/field-panel"
 
 const PARTY_LABEL = [
- "First Party",
- "Second Party",
- "Third Party",
- "Fourth Party",
- "Fifth Party",
- "Sixth Party",
+ "ฝ่ายที่ 1 First Party",
+ "ฝ่ายที่ 2 Second Party",
+ "ฝ่ายที่ 3 Third Party",
+ "ฝ่ายที่ 4 Fourth Party",
+ "ฝ่ายที่ 5 Fifth Party",
+ "ฝ่ายที่ 6 Sixth Party",
 ]
 
 const TYPE_LABEL: Record<string, string> = {
- SIGNATURE: "Signature",
- INITIALS: "Initials",
- TEXT: "Text",
- DATE: "Date",
- NUMBER: "Number",
- IMAGE: "Image",
- CHECKBOX: "Checkbox",
- RADIO: "Multiple Choice",
- SELECT: "Select",
- FILE: "File Upload",
- STAMP: "Stamp",
- PHONE: "Phone",
- CELLS: "Cells",
+ SIGNATURE: "ลายเซ็น Signature",
+ INITIALS: "ชื่อย่อ Initials",
+ TEXT: "ข้อความ Text",
+ DATE: "วันที่ Date",
+ NUMBER: "ตัวเลข Number",
+ IMAGE: "รูปภาพ Image",
+ CHECKBOX: "กล่องเลือก Checkbox",
+ RADIO: "ตัวเลือก Multiple Choice",
+ SELECT: "เลือก Select",
+ FILE: "อัปโหลดไฟล์ File Upload",
+ STAMP: "ตรา Stamp",
+ PHONE: "โทรศัพท์ Phone",
+ CELLS: "ช่อง Cells",
 }
 
 interface Props {
@@ -116,7 +116,7 @@ export default function FieldPropertiesPanel({
  {/* Label */}
  <div>
  <label className="mb-1 block text-xs font-medium text-zinc-500">
- Label
+ ป้ายกำกับ Label
  </label>
  <input
  type="text"
@@ -132,7 +132,7 @@ export default function FieldPropertiesPanel({
  {/* Required */}
  <div className="flex items-center justify-between">
  <label className="text-xs font-medium text-zinc-500">
- Required
+ จำเป็น Required
  </label>
  <button
  type="button"
@@ -157,14 +157,14 @@ export default function FieldPropertiesPanel({
  {signers.length > 0 && (
  <div>
  <label className="mb-1 block text-xs font-medium text-zinc-500">
- Assigned to
+ มอบหมายให้ Assigned to
  </label>
  <select
  value={field.signerId ?? "__none__"}
  onChange={handleSignerChange}
  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
  >
- <option value="__none__">Unassigned</option>
+ <option value="__none__">ไม่มอบหมาย Unassigned</option>
  {signers.map((s, idx) => (
  <option key={s.id} value={s.id}>
  {PARTY_LABEL[idx] ?? `Party ${idx + 1}`}
@@ -176,7 +176,7 @@ export default function FieldPropertiesPanel({
 
  {/* Field position info (read-only) */}
  <div className="rounded-lg bg-zinc-50 px-3 py-2.5">
- <p className="mb-1.5 text-xs font-medium text-zinc-400">Position</p>
+ <p className="mb-1.5 text-xs font-medium text-zinc-400">ตำแหน่ง Position</p>
  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-500">
  <span>Page {field.page}</span>
  <span className="text-right">{field.width.toFixed(0)}×{field.height.toFixed(0)}%</span>
@@ -196,7 +196,7 @@ export default function FieldPropertiesPanel({
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
  </svg>
- Remove field
+ ลบฟิลด์ Remove field
  </button>
  </div>
  </div>

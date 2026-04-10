@@ -77,7 +77,7 @@ export default function SigningForm({
  function handleSubmit(e: React.FormEvent) {
  e.preventDefault()
  if (!validate()) {
- setSubmitError("Please complete all required fields before submitting.")
+ setSubmitError("กรุณากรอกฟิลด์ที่จำเป็นให้ครบ Please complete all required fields.")
  return
  }
  setSubmitError(null)
@@ -152,7 +152,7 @@ export default function SigningForm({
  >
  {/* Signer info */}
  <div className="rounded-xl bg-white p-4" style={{ border: "1px solid var(--border, #E5E7EB)" }}>
- <p className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>Signing as</p>
+ <p className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>ลงนามในฐานะ Signing as</p>
  <p className="font-semibold" style={{ color: "var(--foreground, #212529)" }}>{signerName}</p>
  <p className="mt-0.5 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>{documentName}</p>
  </div>
@@ -161,7 +161,7 @@ export default function SigningForm({
  {fields.length > 0 && (
  <div className="rounded-xl bg-white p-4" style={{ border: "1px solid var(--border, #E5E7EB)" }}>
  <div className="mb-1.5 flex items-center justify-between text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
- <span>Progress</span>
+ <span>ความคืบหน้า Progress</span>
  <span>{completedCount} / {fields.length}</span>
  </div>
  <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--secondary, #F1F3F5)" }}>
@@ -177,7 +177,7 @@ export default function SigningForm({
  <div ref={sidebarRef} className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
  {fields.length === 0 ? (
  <p className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-400">
- No fields to fill in.
+ ไม่มีฟิลด์ให้กรอก No fields to fill in.
  </p>
  ) : (
  fields.map((field) => (
@@ -212,7 +212,7 @@ export default function SigningForm({
  className="rounded-xl py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- {isPending ? "Submitting…" : "Submit & Sign"}
+ {isPending ? "กำลังส่ง…" : "ส่งและลงนาม Submit & Sign"}
  </button>
 
  <button
@@ -222,7 +222,7 @@ export default function SigningForm({
  className="rounded-xl py-2.5 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-40"
  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--accent, #ADB5BD)" }}
  >
- Decline to sign
+ ปฏิเสธลงนาม Decline to sign
  </button>
  </div>
 
@@ -237,7 +237,7 @@ export default function SigningForm({
  {completedCount}
  </div>
  <div className="hidden xs:flex flex-col min-w-0">
- <span className="text-xs text-zinc-400 leading-none">of {fields.length} fields</span>
+ <span className="text-xs text-zinc-400 leading-none">จาก {fields.length} ฟิลด์</span>
  </div>
  </div>
 
@@ -257,7 +257,7 @@ export default function SigningForm({
  className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-zinc-500 disabled:opacity-40 border"
  style={{ borderColor: "var(--border, #E5E7EB)" }}
  >
- Decline
+ ปฏิเสธ Decline
  </button>
 
  {/* Submit */}
@@ -267,7 +267,7 @@ export default function SigningForm({
  className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- {isPending ? "…" : "Submit"}
+ {isPending ? "…" : "ส่ง Submit"}
  </button>
  </div>
 
@@ -361,7 +361,7 @@ export default function SigningForm({
  {/* Next / Done footer */}
  <div className="border-t px-4 py-3 flex items-center justify-between gap-3" style={{ borderColor: "var(--border, #E5E7EB)" }}>
  <span className="text-xs text-zinc-400">
- {fields.findIndex((f) => f.id === activeFieldId) + 1} of {fields.length}
+ {fields.findIndex((f) => f.id === activeFieldId) + 1} จาก {fields.length}
  </span>
  {(() => {
  const idx = fields.findIndex((f) => f.id === activeFieldId)
@@ -374,7 +374,7 @@ export default function SigningForm({
  className="rounded-lg px-5 py-2 text-sm font-semibold text-white"
  style={{ background: "var(--success, #198754)" }}
  >
- Done ✓
+ เสร็จ Done ✓
  </button>
  )
  }
@@ -388,7 +388,7 @@ export default function SigningForm({
  className="flex items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-semibold text-white"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- Next
+ ถัดไป Next
  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
  </svg>
@@ -404,17 +404,17 @@ export default function SigningForm({
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
  <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
  <h2 className="mb-1 text-base font-semibold text-zinc-900">
- Decline to sign
+ ปฏิเสธลงนาม Decline to sign
  </h2>
  <p className="mb-4 text-sm text-zinc-500">
- Please provide a reason. The document owner will be notified.
+ กรุณาระบุเหตุผล เจ้าของเอกสารจะได้รับแจ้ง Please provide a reason.
  </p>
  <textarea
  value={declineReason}
  onChange={(e) => setDeclineReason(e.target.value)}
  rows={3}
  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none"
- placeholder="e.g. I am not the correct signatory"
+ placeholder="เช่น ไม่ใช่ผู้ลงนามที่ถูกต้อง e.g. Not the correct signatory"
  />
  <div className="mt-4 flex justify-end gap-2">
  <button
@@ -423,7 +423,7 @@ export default function SigningForm({
  disabled={isDeclinePending}
  className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
  >
- Cancel
+ ยกเลิก Cancel
  </button>
  <button
  type="button"
@@ -431,7 +431,7 @@ export default function SigningForm({
  disabled={isDeclinePending || !declineReason.trim()}
  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
  >
- {isDeclinePending ? "Declining…" : "Confirm decline"}
+ {isDeclinePending ? "กำลังปฏิเสธ…" : "ยืนยันปฏิเสธ Confirm decline"}
  </button>
  </div>
  </div>

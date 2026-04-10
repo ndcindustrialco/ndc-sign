@@ -43,8 +43,8 @@ export default function RecipientsPanel({
  {/* Header */}
  <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
  <div>
- <h2 className="text-base font-semibold text-zinc-900">Recipients</h2>
- <p className="mt-0.5 text-xs text-zinc-500">Add signers — each is saved immediately.</p>
+ <h2 className="text-base font-semibold text-zinc-900">ผู้ลงนาม Recipients</h2>
+ <p className="mt-0.5 text-xs text-zinc-500">เพิ่มผู้ลงนาม — บันทึกทันที Add signers — saved immediately.</p>
  </div>
  <button
  onClick={handleClose}

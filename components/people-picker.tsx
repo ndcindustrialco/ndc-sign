@@ -141,7 +141,7 @@ export default function PeoplePicker({ value, onChange, disabled }: PeoplePicker
  <input
  ref={inputRef}
  type="text"
- placeholder="Search by name or email…"
+ placeholder="ค้นหาชื่อหรืออีเมล Search by name or email…"
  value={query}
  onChange={(e) => handleQueryChange(e.target.value)}
  onKeyDown={handleKeyDown}

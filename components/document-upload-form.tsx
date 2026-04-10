@@ -21,12 +21,12 @@ export default function DocumentUploadForm() {
     if (!selected) return
 
     if (selected.type !== ALLOWED_TYPE) {
-      setError("Only PDF files are allowed")
+      setError("รองรับเฉพาะไฟล์ PDF Only PDF files allowed")
       return
     }
 
     if (selected.size > MAX_MB * 1024 * 1024) {
-      setError(`File must be smaller than ${MAX_MB} MB`)
+      setError(`ไฟล์ต้องเล็กกว่า ${MAX_MB} MB`)
       return
     }
 
@@ -101,16 +101,16 @@ export default function DocumentUploadForm() {
               {file.name}
             </p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
-              {(file.size / 1024 / 1024).toFixed(2)} MB · Click to change
+              {(file.size / 1024 / 1024).toFixed(2)} MB · คลิกเพื่อเปลี่ยน Click to change
             </p>
           </div>
         ) : (
           <div>
             <p className="text-sm font-semibold" style={{ color: "var(--foreground, #212529)" }}>
-              Drag & drop PDF here
+              ลากไฟล์ PDF มาวางที่นี่ Drag & drop PDF here
             </p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
-              or click to browse · max {MAX_MB} MB
+              หรือคลิกเลือก · ไม่เกิน {MAX_MB} MB
             </p>
           </div>
         )}
@@ -154,10 +154,10 @@ export default function DocumentUploadForm() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
-            Uploading…
+            กำลังอัปโหลด…
           </>
         ) : (
-          "Upload Document"
+          "อัปโหลดเอกสาร Upload Document"
         )}
       </button>
     </form>

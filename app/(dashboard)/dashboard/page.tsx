@@ -27,7 +27,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold" style={{ color: "var(--foreground, #212529)" }}>
-              Documents
+              เอกสาร Documents
             </h1>
             <p className="mt-0.5 text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>
               {session.user?.name ?? session.user?.email}
@@ -41,7 +41,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Upload
+            อัปโหลด Upload
           </Link>
         </div>
 
@@ -55,7 +55,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               color: "var(--danger, #DC3545)",
             }}
           >
-            Failed to load documents: {result.error}
+            โหลดเอกสารไม่ได้ Failed to load: {result.error}
           </div>
         )}
 
