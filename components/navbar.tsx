@@ -175,7 +175,7 @@ export default function Navbar({ userName, userEmail, userImage }: NavbarProps) 
                   href={item.href}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
                   style={{
-                    color: active ? "var(--primary, ##FFFFFF)" : "#64748b",
+                    color: active ? "var(--primary, #ffffff)" : "#64748b",
                     background: active ? "rgba(15,16,89,0.07)" : "transparent",
                   }}
                 >

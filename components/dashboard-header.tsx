@@ -9,6 +9,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   documents: "เอกสาร Documents",
   upload: "อัปโหลด Upload",
   edit: "แก้ไข Edit",
+  feedback: "ความคิดเห็น Feedback",
+  manage: "จัดการ Manage",
 }
 
 const isUuid = (segment: string) =>

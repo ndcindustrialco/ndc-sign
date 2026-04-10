@@ -11,7 +11,6 @@ export default function LoginPage() {
       <div className="mb-8 flex flex-col items-center gap-3">
         <div
           className="flex h-12 w-12 items-center justify-center rounded-xl"
-          style={{ background: "var(--primary, #FFFFFF)" }}
         >
       <Image src="/favicon.ico" alt="" width={28} height={28} />
         </div>

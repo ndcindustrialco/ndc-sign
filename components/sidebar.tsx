@@ -31,10 +31,35 @@ const NAV_ITEMS = [
   },
 ]
 
+const FEEDBACK_NAV = {
+  href: "/dashboard/feedback",
+  label: "ความคิดเห็น Feedback",
+  exact: true,
+  icon: (
+    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+    </svg>
+  ),
+}
+
+const FEEDBACK_MANAGE_NAV = {
+  href: "/dashboard/feedback/manage",
+  label: "จัดการ Feedback Manage Feedback",
+  exact: false,
+  icon: (
+    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  ),
+}
+
 interface SidebarProps {
   userName: string | null | undefined
   userEmail: string | null | undefined
   userImage: string | null | undefined
+  userRole: string
   mobileOpen: boolean
   onMobileClose: () => void
 }
@@ -43,6 +68,7 @@ const SidebarContent = ({
   userName,
   userEmail,
   userImage,
+  userRole,
   collapsed,
   setCollapsed,
   onNavClick,
@@ -50,6 +76,7 @@ const SidebarContent = ({
   userName: string | null | undefined
   userEmail: string | null | undefined
   userImage: string | null | undefined
+  userRole: string
   collapsed: boolean
   setCollapsed: (v: boolean) => void
   onNavClick?: () => void
@@ -121,6 +148,60 @@ const SidebarContent = ({
             </Link>
           )
         })}
+
+        {/* Feedback section */}
+        {!collapsed && (
+          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            อื่นๆ Others
+          </p>
+        )}
+        {collapsed && <div className="my-2 border-t border-slate-700/50" />}
+
+        {/* Feedback - visible to all users */}
+        {(() => {
+          const active = isActive(FEEDBACK_NAV.href, FEEDBACK_NAV.exact)
+          return (
+            <Link
+              href={FEEDBACK_NAV.href}
+              onClick={onNavClick}
+              title={collapsed ? FEEDBACK_NAV.label : undefined}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                active
+                  ? "bg-white/10 text-white shadow-sm"
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              } ${collapsed ? "justify-center" : ""}`}
+            >
+              {FEEDBACK_NAV.icon}
+              {!collapsed && <span>{FEEDBACK_NAV.label}</span>}
+              {!collapsed && active && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
+            </Link>
+          )
+        })()}
+
+        {/* Feedback Management - IT only */}
+        {userRole === "IT" && (() => {
+          const active = isActive(FEEDBACK_MANAGE_NAV.href, FEEDBACK_MANAGE_NAV.exact)
+          return (
+            <Link
+              href={FEEDBACK_MANAGE_NAV.href}
+              onClick={onNavClick}
+              title={collapsed ? FEEDBACK_MANAGE_NAV.label : undefined}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                active
+                  ? "bg-white/10 text-white shadow-sm"
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              } ${collapsed ? "justify-center" : ""}`}
+            >
+              {FEEDBACK_MANAGE_NAV.icon}
+              {!collapsed && <span>{FEEDBACK_MANAGE_NAV.label}</span>}
+              {!collapsed && active && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
+            </Link>
+          )
+        })()}
       </nav>
 
       {/* User section */}
@@ -165,7 +246,7 @@ const SidebarContent = ({
   )
 }
 
-const Sidebar = ({ userName, userEmail, userImage, mobileOpen, onMobileClose }: SidebarProps) => {
+const Sidebar = ({ userName, userEmail, userImage, userRole, mobileOpen, onMobileClose }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
 
@@ -184,6 +265,7 @@ const Sidebar = ({ userName, userEmail, userImage, mobileOpen, onMobileClose }: 
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
+          userRole={userRole}
           collapsed={collapsed}
           setCollapsed={setCollapsed}
         />
@@ -208,6 +290,7 @@ const Sidebar = ({ userName, userEmail, userImage, mobileOpen, onMobileClose }: 
           userName={userName}
           userEmail={userEmail}
           userImage={userImage}
+          userRole={userRole}
           collapsed={false}
           setCollapsed={() => {}}
           onNavClick={onMobileClose}

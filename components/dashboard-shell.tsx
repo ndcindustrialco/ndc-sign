@@ -8,10 +8,11 @@ interface DashboardShellProps {
   userName: string | null | undefined
   userEmail: string | null | undefined
   userImage: string | null | undefined
+  userRole: string
   children: React.ReactNode
 }
 
-const DashboardShell = ({ userName, userEmail, userImage, children }: DashboardShellProps) => {
+const DashboardShell = ({ userName, userEmail, userImage, userRole, children }: DashboardShellProps) => {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -21,6 +22,7 @@ const DashboardShell = ({ userName, userEmail, userImage, children }: DashboardS
         userName={userName}
         userEmail={userEmail}
         userImage={userImage}
+        userRole={userRole}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
