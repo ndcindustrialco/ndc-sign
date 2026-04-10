@@ -7,6 +7,7 @@ import {
   sendVoidNotification,
   sendDeclineNotification,
 } from "@/lib/email/send"
+import { downloadTempPdf, deleteTempPdf } from "@/lib/email/pdf-storage"
 
 // ---------------------------------------------------------------------------
 // Helper: revive Date fields that were serialized to strings via JSON
@@ -26,20 +27,36 @@ function reviveDates<T extends Record<string, unknown>>(
 }
 
 // ---------------------------------------------------------------------------
-// Helper: revive Uint8Array fields that were serialized as number[] via JSON
+// Helper: download PDFs from temp storage paths and attach as bytes
+// Cleans up temp files after download.
 // ---------------------------------------------------------------------------
 
-function reviveBytes<T extends Record<string, unknown>>(
-  data: T,
-  keys: string[]
-): T {
-  const copy: Record<string, unknown> = { ...data }
-  for (const key of keys) {
-    if (key in copy && Array.isArray(copy[key])) {
-      copy[key] = new Uint8Array(copy[key] as number[])
-    }
+async function resolvePdfPaths(
+  data: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const copy = { ...data }
+  const pathsToCleanup: string[] = []
+
+  if (typeof copy.signedPdfPath === "string" && copy.signedPdfPath) {
+    const bytes = await downloadTempPdf(copy.signedPdfPath)
+    copy.signedPdfBytes = bytes
+    pathsToCleanup.push(copy.signedPdfPath)
+    delete copy.signedPdfPath
   }
-  return copy as T
+
+  if (typeof copy.auditPdfPath === "string" && copy.auditPdfPath) {
+    const bytes = await downloadTempPdf(copy.auditPdfPath)
+    copy.auditPdfBytes = bytes
+    pathsToCleanup.push(copy.auditPdfPath)
+    delete copy.auditPdfPath
+  }
+
+  // Cleanup temp files (best effort, don't block on failure)
+  for (const path of pathsToCleanup) {
+    deleteTempPdf(path).catch(() => {})
+  }
+
+  return copy
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +76,7 @@ export const sendSignedNotificationFunction = inngest.createFunction(
   { id: "send-signed-notification", retries: 3, triggers: [{ event: "email/signed-notification" }] },
   async ({ event }) => {
     let data = reviveDates(event.data, ["signedAt"])
-    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
+    data = await resolvePdfPaths(data)
     await sendSignedNotification(data as Parameters<typeof sendSignedNotification>[0])
     return { sent: true }
   }
@@ -69,7 +86,7 @@ export const sendCompletedNotificationFunction = inngest.createFunction(
   { id: "send-completed-notification", retries: 3, triggers: [{ event: "email/completed-notification" }] },
   async ({ event }) => {
     let data = reviveDates(event.data, ["completedAt"])
-    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
+    data = await resolvePdfPaths(data)
     await sendCompletedNotification(data as Parameters<typeof sendCompletedNotification>[0])
     return { sent: true }
   }
@@ -79,7 +96,7 @@ export const sendSignerCopyFunction = inngest.createFunction(
   { id: "send-signer-copy", retries: 3, triggers: [{ event: "email/signer-copy" }] },
   async ({ event }) => {
     let data = reviveDates(event.data, ["signedAt"])
-    data = reviveBytes(data, ["signedPdfBytes", "auditPdfBytes"])
+    data = await resolvePdfPaths(data)
     await sendSignerCopy(data as Parameters<typeof sendSignerCopy>[0])
     return { sent: true }
   }
