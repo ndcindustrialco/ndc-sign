@@ -70,8 +70,44 @@ export default function SignaturePad({
  ctx.fillStyle = "#1a1a1a"
  ctx.textBaseline = "middle"
  ctx.fillText(typedText, 20, canvas.height / 2)
- onChangeRef.current(canvas.toDataURL("image/png"))
+ onChangeRef.current(trimCanvasToDataUrl(canvas))
  }, [typedText, selectedFont, tab])
+
+ // Trim transparent padding around ink — returns a PNG data URL
+ // sized to the actual signature bounds (preserves aspect ratio downstream).
+ function trimCanvasToDataUrl(source: HTMLCanvasElement): string | null {
+ const ctx = source.getContext("2d")
+ if (!ctx) return null
+ const { width, height } = source
+ const { data } = ctx.getImageData(0, 0, width, height)
+
+ let top = height, left = width, right = 0, bottom = 0
+ let hasPixel = false
+ for (let y = 0; y < height; y++) {
+ for (let x = 0; x < width; x++) {
+ const alpha = data[(y * width + x) * 4 + 3]!
+ if (alpha === 0) continue
+ hasPixel = true
+ if (x < left) left = x
+ if (x > right) right = x
+ if (y < top) top = y
+ if (y > bottom) bottom = y
+ }
+ }
+ if (!hasPixel) return null
+
+ const pad = 4
+ const cropX = Math.max(0, left - pad)
+ const cropY = Math.max(0, top - pad)
+ const cropW = Math.min(width - cropX, right - left + 1 + pad * 2)
+ const cropH = Math.min(height - cropY, bottom - top + 1 + pad * 2)
+
+ const out = window.document.createElement("canvas")
+ out.width = cropW
+ out.height = cropH
+ out.getContext("2d")!.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+ return out.toDataURL("image/png")
+ }
 
  // ---- Draw handlers ----
  function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -107,8 +143,8 @@ export default function SignaturePad({
  function onPointerUp() {
  if (!isDrawing.current) return
  isDrawing.current = false
- const dataUrl = canvasRef.current!.toDataURL("image/png")
- setDrawIsEmpty(false)
+ const dataUrl = trimCanvasToDataUrl(canvasRef.current!)
+ setDrawIsEmpty(!dataUrl)
  onChangeRef.current(dataUrl)
  }
 

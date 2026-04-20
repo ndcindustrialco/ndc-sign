@@ -133,11 +133,15 @@ export async function generateSignedPdf(
 
       try {
         const pngImage = await pdfDoc.embedPng(pngBytes)
+        // Preserve aspect ratio: fit inside the field box and center
+        const fitted = pngImage.scaleToFit(w, h)
+        const drawX = x + (w - fitted.width) / 2
+        const drawY = y + (h - fitted.height) / 2
         page.drawImage(pngImage, {
-          x,
-          y,
-          width: w,
-          height: h,
+          x: drawX,
+          y: drawY,
+          width: fitted.width,
+          height: fitted.height,
           opacity: 1,
         })
       } catch {
