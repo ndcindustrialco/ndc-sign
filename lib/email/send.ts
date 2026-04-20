@@ -1,6 +1,7 @@
 import { sendGraphMail } from "./graph-client"
 import {
   renderInviteEmail,
+  renderReminderEmail,
   renderSignedNotificationEmail,
   renderCompletedEmail,
   renderVoidNotificationEmail,
@@ -38,6 +39,41 @@ export async function sendSigningInvite(opts: {
     fromEmail: opts.senderEmail,
     fromName: opts.senderName,
     subject: opts.customSubject ?? `กรุณาลงนาม / Please sign: ${opts.documentName}`,
+    htmlBody: html,
+    toAddress: opts.signerEmail,
+    toName: opts.signerName,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Send a reminder to a signer who has not yet signed
+// Sent FROM the document owner's mailbox (OBO)
+// ---------------------------------------------------------------------------
+
+export async function sendSigningReminder(opts: {
+  userAccessToken: string
+  senderEmail: string
+  senderName: string
+  signerName: string
+  signerEmail: string
+  documentName: string
+  signingUrl: string
+  expiresAt: Date
+  customMessage?: string
+}): Promise<void> {
+  const html = renderReminderEmail({
+    signerName: opts.signerName,
+    documentName: opts.documentName,
+    senderName: opts.senderName,
+    signingUrl: opts.signingUrl,
+    expiresAt: opts.expiresAt,
+    customMessage: opts.customMessage,
+  })
+  await sendGraphMail({
+    userAccessToken: opts.userAccessToken,
+    fromEmail: opts.senderEmail,
+    fromName: opts.senderName,
+    subject: `แจ้งเตือนให้ลงนาม / Reminder to sign: ${opts.documentName}`,
     htmlBody: html,
     toAddress: opts.signerEmail,
     toName: opts.signerName,

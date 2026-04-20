@@ -6,6 +6,7 @@ import Link from "next/link"
 import type { DocumentDetail } from "@/lib/actions/document"
 import type { AuditMeta } from "@/lib/actions/audit"
 import { voidDocument } from "@/lib/actions/document"
+import { remindSigner, remindAllPendingSigners } from "@/lib/actions/remind"
 
 type AuditEvent = {
  id: string
@@ -192,8 +193,50 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  const [showVoidModal, setShowVoidModal] = useState(false)
  const [isPending, startTransition] = useTransition()
  const [error, setError] = useState<string | null>(null)
+ const [toast, setToast] = useState<string | null>(null)
+ const [remindingId, setRemindingId] = useState<string | null>(null)
+ const [remindingAll, setRemindingAll] = useState(false)
 
  const canVoid = doc.status === "PENDING" || doc.status === "DRAFT"
+ const pendingSignerCount = doc.signers.filter(
+   (s) => (s.status === "PENDING" || s.status === "OPENED") && !s.isStub
+ ).length
+ const canRemind = doc.status === "PENDING" && pendingSignerCount > 0
+
+ function handleRemindOne(signerId: string) {
+   setError(null)
+   setToast(null)
+   setRemindingId(signerId)
+   startTransition(async () => {
+     const result = await remindSigner({ documentId: doc.id, signerId })
+     setRemindingId(null)
+     if (result.ok) {
+       setToast("ส่งการแจ้งเตือนแล้ว / Reminder sent")
+       router.refresh()
+     } else {
+       setError(result.error)
+     }
+   })
+ }
+
+ function handleRemindAll() {
+   setError(null)
+   setToast(null)
+   setRemindingAll(true)
+   startTransition(async () => {
+     const result = await remindAllPendingSigners({ documentId: doc.id })
+     setRemindingAll(false)
+     if (result.ok) {
+       const { sentCount, skippedCount } = result.data
+       setToast(
+         `ส่งแจ้งเตือน ${sentCount} คน${skippedCount > 0 ? ` (ข้าม ${skippedCount})` : ""} / Reminded ${sentCount} signer${sentCount !== 1 ? "s" : ""}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}`
+       )
+       router.refresh()
+     } else {
+       setError(result.error)
+     }
+   })
+ }
 
  function handleVoidConfirm(reason: string) {
  startTransition(async () => {
@@ -213,6 +256,19 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
 
  return (
  <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+ {/* Toast banner */}
+ {toast && (
+ <div
+ className="mb-4 flex items-center justify-between rounded-lg px-4 py-3 text-sm"
+ style={{ border: "1px solid #BBF7D0", background: "#F0FDF4", color: "var(--success, #198754)" }}
+ >
+ <span>{toast}</span>
+ <button onClick={() => setToast(null)} className="ml-4 underline opacity-70 hover:opacity-100">
+ ปิด Dismiss
+ </button>
+ </div>
+ )}
+
  {/* Error banner */}
  {error && (
  <div
@@ -275,6 +331,16 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  แก้ไขฟิลด์ Edit Fields
  </Link>
  )}
+ {canRemind && (
+ <button
+ onClick={handleRemindAll}
+ disabled={isPending || remindingAll}
+ className="rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+ style={{ background: "var(--primary, #0F1059)" }}
+ >
+ {remindingAll ? "กำลังส่ง…" : `แจ้งเตือนทั้งหมด Remind all (${pendingSignerCount})`}
+ </button>
+ )}
  {canVoid && (
  <button
  onClick={() => setShowVoidModal(true)}
@@ -321,10 +387,18 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>อีเมล Email</th>
  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>ลำดับ Order</th>
  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>สถานะ Status</th>
+ {doc.status === "PENDING" && (
+ <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent, #ADB5BD)" }}>จัดการ Actions</th>
+ )}
  </tr>
  </thead>
  <tbody>
- {doc.signers.map((signer) => (
+ {doc.signers.map((signer) => {
+ const canRemindThis =
+   doc.status === "PENDING" &&
+   !signer.isStub &&
+   (signer.status === "PENDING" || signer.status === "OPENED")
+ return (
  <tr key={signer.id} style={{ borderBottom: "1px solid var(--border, #E5E7EB)" }}>
  <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground, #212529)" }}>{signer.name}</td>
  <td className="px-4 py-3 text-sm" style={{ color: "var(--accent, #ADB5BD)" }}>{signer.email}</td>
@@ -337,8 +411,23 @@ export default function DocumentDetailClient({ doc, auditEvents, pdfUrl, signedP
  )}
  </div>
  </td>
+ {doc.status === "PENDING" && (
+ <td className="px-4 py-3 text-right">
+ {canRemindThis && (
+ <button
+ onClick={() => handleRemindOne(signer.id)}
+ disabled={isPending || remindingId === signer.id}
+ className="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-100 disabled:opacity-50"
+ style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--foreground, #212529)" }}
+ >
+ {remindingId === signer.id ? "กำลังส่ง…" : "แจ้งเตือน Remind"}
+ </button>
+ )}
+ </td>
+ )}
  </tr>
- ))}
+ )
+ })}
  </tbody>
  </table>
  </div>

@@ -1,6 +1,7 @@
 import { inngest } from "./client"
 import {
   sendSigningInvite,
+  sendSigningReminder,
   sendSignedNotification,
   sendCompletedNotification,
   sendSignerCopy,
@@ -72,6 +73,15 @@ export const sendSigningInviteFunction = inngest.createFunction(
   }
 )
 
+export const sendSigningReminderFunction = inngest.createFunction(
+  { id: "send-signing-reminder", retries: 3, triggers: [{ event: "email/signing-reminder" }] },
+  async ({ event }) => {
+    const data = reviveDates(event.data, ["expiresAt"])
+    await sendSigningReminder(data as Parameters<typeof sendSigningReminder>[0])
+    return { sent: true }
+  }
+)
+
 export const sendSignedNotificationFunction = inngest.createFunction(
   { id: "send-signed-notification", retries: 3, triggers: [{ event: "email/signed-notification" }] },
   async ({ event }) => {
@@ -120,6 +130,7 @@ export const sendDeclineNotificationFunction = inngest.createFunction(
 
 export const allFunctions = [
   sendSigningInviteFunction,
+  sendSigningReminderFunction,
   sendSignedNotificationFunction,
   sendCompletedNotificationFunction,
   sendSignerCopyFunction,

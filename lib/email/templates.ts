@@ -369,6 +369,71 @@ export function renderSignerCopyEmail(data: SignerCopyData): string {
 }
 
 // ---------------------------------------------------------------------------
+// Reminder to Sign — sent to a signer who has not yet signed
+// ---------------------------------------------------------------------------
+
+export interface ReminderEmailData {
+  signerName: string
+  documentName: string
+  senderName: string
+  signingUrl: string
+  expiresAt: Date
+  customMessage?: string
+}
+
+export function renderReminderEmail(data: ReminderEmailData): string {
+  const expires = formatDate(data.expiresAt)
+
+  const messageBlock = data.customMessage
+    ? `<p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.7;white-space:pre-line;">${escapeHtml(data.customMessage)}</p>`
+    : ""
+
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
+      แจ้งเตือน: เอกสารรอลงนาม / Reminder: Document awaiting your signature
+    </h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
+      ${escapeHtml(data.senderName)} ฝากเตือนให้คุณลงนามในเอกสาร
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span><br/>
+      ${escapeHtml(data.senderName)} is reminding you to sign
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
+    </p>
+    ${messageBlock}
+
+    <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
+      <tr>
+        <td style="font-size:13px;color:#71717a;line-height:1.8;">
+          <span style="color:#18181b;">เอกสาร / Document</span> &nbsp;${escapeHtml(data.documentName)}<br/>
+          <span style="color:#18181b;">ส่งโดย / From</span> &nbsp;${escapeHtml(data.senderName)}<br/>
+          <span style="color:#18181b;">หมดอายุ / Expires</span> &nbsp;${expires}
+        </td>
+      </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="border-radius:8px;background:${ACCENT_COLOR};">
+          <a href="${escapeHtml(data.signingUrl)}"
+             style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:8px;">
+            ตรวจสอบและลงนาม / Review &amp; Sign
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:20px 0 0;font-size:12px;color:#a1a1aa;line-height:1.6;">
+      หรือคัดลอกลิงก์นี้ / Or copy this link:<br/>
+      <a href="${escapeHtml(data.signingUrl)}" style="color:${ACCENT_COLOR};word-break:break-all;">${escapeHtml(data.signingUrl)}</a>
+    </p>
+    <p style="margin:6px 0 0;font-size:12px;color:#a1a1aa;">
+      ลิงก์นี้ใช้ได้ครั้งเดียวและหมดอายุวันที่ ${expires}<br/>
+      This link is single-use and expires on ${expires}.
+    </p>
+  `
+  return baseLayout(content)
+}
+
+// ---------------------------------------------------------------------------
 // Utility
 // ---------------------------------------------------------------------------
 
