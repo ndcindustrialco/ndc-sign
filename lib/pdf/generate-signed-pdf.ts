@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
+import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib"
 import { createHash } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase"
@@ -133,17 +133,54 @@ export async function generateSignedPdf(
 
       try {
         const pngImage = await pdfDoc.embedPng(pngBytes)
-        // Preserve aspect ratio: fit inside the field box and center
-        const fitted = pngImage.scaleToFit(w, h)
-        const drawX = x + (w - fitted.width) / 2
-        const drawY = y + (h - fitted.height) / 2
-        page.drawImage(pngImage, {
-          x: drawX,
-          y: drawY,
-          width: fitted.width,
-          height: fitted.height,
-          opacity: 1,
-        })
+
+        // Auto-rotate 90° when image orientation doesn't match the field box
+        // (e.g. landscape signature into a portrait cell in a table).
+        const imgLandscape = pngImage.width >= pngImage.height
+        const boxLandscape = w >= h
+        const rotate = imgLandscape !== boxLandscape
+
+        if (rotate) {
+          // When rotated 90°, the image's width spans the box height & vice versa.
+          // Fit the rotated image (swapped dims) inside the box, preserving aspect.
+          const imgAspect = pngImage.width / pngImage.height
+          // After rotation, "drawn width on page" = h' ≤ h, "drawn height" = w' ≤ w
+          // Solve for largest rotated image that fits inside (w, h):
+          //   drawn_w_rotated = imgH_scaled, drawn_h_rotated = imgW_scaled
+          //   with imgW_scaled / imgH_scaled = imgAspect
+          let drawnW = h
+          let drawnH = h * imgAspect
+          if (drawnH > w) {
+            drawnH = w
+            drawnW = w / imgAspect
+          }
+          // pdf-lib rotates around (x, y); after rotate(90°) the image grows into +x, -y
+          // Place so the rotated bbox is centered inside the field.
+          const bboxW = drawnH
+          const bboxH = drawnW
+          const offsetX = (w - bboxW) / 2
+          const offsetY = (h - bboxH) / 2
+          page.drawImage(pngImage, {
+            x: x + offsetX + bboxW,
+            y: y + offsetY,
+            width: drawnW,
+            height: drawnH,
+            rotate: degrees(90),
+            opacity: 1,
+          })
+        } else {
+          // Preserve aspect ratio: fit inside the field box and center
+          const fitted = pngImage.scaleToFit(w, h)
+          const drawX = x + (w - fitted.width) / 2
+          const drawY = y + (h - fitted.height) / 2
+          page.drawImage(pngImage, {
+            x: drawX,
+            y: drawY,
+            width: fitted.width,
+            height: fitted.height,
+            opacity: 1,
+          })
+        }
       } catch {
         // If PNG embed fails, fall back to text placeholder
         page.drawText("[Signature]", {

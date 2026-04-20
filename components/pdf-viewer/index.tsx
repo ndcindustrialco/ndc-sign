@@ -136,6 +136,8 @@ export default function PdfViewer({
  const [pageWidth, setPageWidth] = useState(794)
  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
  const [, startTransition] = useTransition()
+ const clipboardRef = useRef<FieldItem | null>(null)
+ const selectedIdRef = useRef<string | null>(null)
 
  const signerColorMap = new Map(
  signers.map((s, i) => [s.id, SIGNER_COLORS[i % SIGNER_COLORS.length]!.dot])
@@ -236,6 +238,116 @@ export default function PdfViewer({
  setSelectedId(null)
  if (!id.startsWith("optimistic-")) startTransition(async () => { await deleteField(id) })
  }
+
+ const handleDuplicate = (source: FieldItem) => {
+ // Offset new field slightly so it's visibly distinguishable
+ const OFFSET = 2
+ const width = source.width
+ const height = source.height
+ const nx = Math.max(0, Math.min(100 - width, source.x + OFFSET))
+ const ny = Math.max(0, Math.min(100 - height, source.y + OFFSET))
+
+ const isPlaceholder = source.signerId?.startsWith("placeholder-") ?? false
+ const dbSignerId = source.signerId && !isPlaceholder ? source.signerId : undefined
+ const displaySignerId = source.signerId
+
+ const optimistic: FieldItem = {
+ id: `optimistic-${Date.now()}`,
+ signerId: displaySignerId,
+ type: source.type,
+ page: source.page,
+ x: nx, y: ny, width, height,
+ label: source.label,
+ required: source.required,
+ options: [...source.options],
+ groupId: source.groupId,
+ }
+
+ setFields((prev) => { const next = [...prev, optimistic]; fieldsRef.current = next; return next })
+ setSelectedId(optimistic.id)
+
+ startTransition(async () => {
+ const result = await createField({
+ documentId,
+ signerId: dbSignerId,
+ type: source.type,
+ page: source.page,
+ x: nx, y: ny, width, height,
+ label: source.label ?? undefined,
+ required: source.required,
+ options: [...source.options],
+ groupId: source.groupId ?? undefined,
+ })
+ if (result.ok) {
+ const fieldWithColor: FieldItem = { ...result.data, signerId: displaySignerId }
+ setFields((prev) => { const next = prev.map((f) => f.id === optimistic.id ? fieldWithColor : f); fieldsRef.current = next; return next })
+ setSelectedId(result.data.id)
+ } else {
+ setFields((prev) => { const next = prev.filter((f) => f.id !== optimistic.id); fieldsRef.current = next; return next })
+ }
+ })
+ }
+
+ useEffect(() => {
+ selectedIdRef.current = selectedId
+ }, [selectedId])
+
+ useEffect(() => {
+ const isEditableTarget = (target: EventTarget | null): boolean => {
+ if (!(target instanceof HTMLElement)) return false
+ const tag = target.tagName
+ if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true
+ if (target.isContentEditable) return true
+ return false
+ }
+
+ const handler = (e: KeyboardEvent) => {
+ if (isEditableTarget(e.target)) return
+
+ const currentId = selectedIdRef.current
+ const selected = currentId ? fieldsRef.current.find((f) => f.id === currentId) ?? null : null
+ const isMod = e.ctrlKey || e.metaKey
+
+ // Delete / Backspace — remove selected field
+ if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+ e.preventDefault()
+ handleDelete(selected.id)
+ return
+ }
+
+ // Ctrl/Cmd + C — copy selected field to clipboard
+ if (isMod && (e.key === "c" || e.key === "C") && selected) {
+ e.preventDefault()
+ clipboardRef.current = { ...selected, options: [...selected.options] }
+ return
+ }
+
+ // Ctrl/Cmd + D — duplicate selected field directly
+ if (isMod && (e.key === "d" || e.key === "D") && selected) {
+ e.preventDefault()
+ handleDuplicate(selected)
+ return
+ }
+
+ // Ctrl/Cmd + V — paste clipboard field
+ if (isMod && (e.key === "v" || e.key === "V") && clipboardRef.current) {
+ e.preventDefault()
+ handleDuplicate(clipboardRef.current)
+ return
+ }
+
+ // Escape — clear selection / placement mode
+ if (e.key === "Escape") {
+ setSelectedId(null)
+ setSelectedType(null)
+ setSelectedSignerId(null)
+ }
+ }
+
+ document.addEventListener("keydown", handler)
+ return () => document.removeEventListener("keydown", handler)
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [documentId])
 
  const handleLabelChange = (id: string, label: string | null) => {
  setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, label } : f); fieldsRef.current = next; return next })
