@@ -90,12 +90,18 @@ function PageFieldLayer({
  // or remember starting point for click-to-deselect detection.
  // Field items call e.stopPropagation(), so this only fires on the empty page surface.
  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
- if (e.button !== 0) return // left button only
+ // Mouse: left button only. Touch/pen: button is 0 too.
+ if (e.pointerType === "mouse" && e.button !== 0) return
  if (!containerRef.current) return
+ // If no type selected, don't capture — allow native scroll on mobile.
+ // We still track the start point for tap-to-deselect on pointer up.
  const rect = containerRef.current.getBoundingClientRect()
  const xPct = ((e.clientX - rect.left) / rect.width) * 100
  const yPct = ((e.clientY - rect.top) / rect.height) * 100
+ if (drawingType) {
  e.currentTarget.setPointerCapture(e.pointerId)
+ e.preventDefault()
+ }
  setDraw({ startX: xPct, startY: yPct, curX: xPct, curY: yPct, pointerId: e.pointerId })
  }
 
@@ -158,7 +164,7 @@ function PageFieldLayer({
  containerRef.current = el
  onRegisterRef(pageNum, el)
  }}
- className={`relative mb-4 shadow-md ${cursor}`}
+ className={`relative mb-4 shadow-md ${cursor} ${drawingType ? "touch-none" : ""}`}
  onPointerDown={handlePointerDown}
  onPointerMove={handlePointerMove}
  onPointerUp={handlePointerUp}

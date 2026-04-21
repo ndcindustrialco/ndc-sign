@@ -248,7 +248,7 @@ export default function FieldItemComponent({
  >
  {/* Header tab — sits above the body */}
  <div
- className={`absolute left-0 -top-5 flex h-5 max-w-full items-center gap-1 rounded-t-md px-1.5 text-[11px] font-medium text-white shadow-sm cursor-move ${style.header}`}
+ className={`absolute left-0 -top-5 flex h-5 max-w-full items-center gap-1 rounded-t-md px-1.5 text-[11px] font-medium text-white shadow-sm cursor-move touch-none ${style.header}`}
  onPointerDown={handleDragPointerDown}
  onPointerMove={handleDragPointerMove}
  onPointerUp={handleDragPointerUp}
@@ -280,7 +280,7 @@ export default function FieldItemComponent({
 
  {/* Body — the draggable field area */}
  <div
- className={`absolute inset-0 cursor-move border-2 rounded-sm flex items-center justify-center select-none ${style.border} ${style.bg} ${style.text} ${
+ className={`absolute inset-0 cursor-move border-2 rounded-sm flex items-center justify-center select-none touch-none ${style.border} ${style.bg} ${style.text} ${
  isSelected ? "shadow-md" : ""
  }`}
  onPointerDown={handleDragPointerDown}
@@ -290,11 +290,11 @@ export default function FieldItemComponent({
  <TypeIcon type={field.type} className="h-6 w-6 opacity-80" />
  </div>
 
- {/* Resize handle — single bottom-right, always visible on hover, stronger when selected */}
+ {/* Resize handle — single bottom-right. Larger hit area on touch devices. */}
  <div
  onPointerDown={handleResizePointerDown}
  onClick={(e) => e.stopPropagation()}
- className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-white shadow cursor-se-resize z-10 ${
+ className={`absolute -bottom-2 -right-2 h-5 w-5 rounded-full border-2 border-white bg-white shadow cursor-se-resize touch-none z-10 ${
  isSelected ? "ring-2 ring-zinc-900/70" : "ring-1 ring-zinc-400"
  }`}
  />

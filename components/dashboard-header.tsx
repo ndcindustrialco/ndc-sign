@@ -27,6 +27,15 @@ interface Crumb {
   href: string
 }
 
+/**
+ * Segments whose route doesn't exist as a standalone page — link them to an
+ * alternative route instead of the literal cumulative path. For example,
+ * `/dashboard/documents` has no page.tsx; the document list lives at `/dashboard`.
+ */
+const SEGMENT_HREF_OVERRIDE: Record<string, string> = {
+  documents: "/dashboard",
+}
+
 const buildBreadcrumbs = (pathname: string): Crumb[] => {
   const segments = pathname.split("/").filter(Boolean)
   const crumbs: Crumb[] = []
@@ -41,11 +50,13 @@ const buildBreadcrumbs = (pathname: string): Crumb[] => {
     // Skip "dashboard" since Home already points there
     if (segment === "dashboard") continue
 
+    const href = SEGMENT_HREF_OVERRIDE[segment] ?? currentPath
+
     if (isDynamicId(segment)) {
-      crumbs.push({ label: "รายละเอียด Detail", href: currentPath })
+      crumbs.push({ label: "รายละเอียด Detail", href })
     } else {
       const label = SEGMENT_LABELS[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1)
-      crumbs.push({ label, href: currentPath })
+      crumbs.push({ label, href })
     }
   }
 
@@ -80,7 +91,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
           const isHome = i === 0
 
           return (
-            <span key={crumb.href} className="flex items-center gap-1.5">
+            <span key={i} className="flex items-center gap-1.5">
               {i > 0 && (
                 <svg
                   className="h-3.5 w-3.5 shrink-0 text-slate-300"
