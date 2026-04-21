@@ -28,19 +28,24 @@ export default function FieldOverlay({
 
   return (
     <div className="pointer-events-none absolute inset-0">
-      {pageFields.map((field) => (
-        <div key={field.id} className="pointer-events-auto">
-          <FieldItemComponent
-            field={field}
-            containerRef={containerRef}
-            isSelected={selectedId === field.id}
-            onSelect={onSelect}
-            onUpdate={onUpdate}
-            onUpdateCommit={onUpdateCommit}
-            onDelete={onDelete}
-          />
-        </div>
-      ))}
+      {pageFields.map((field) => {
+        const fieldIndex =
+          fields.filter((f) => f.type === field.type).findIndex((f) => f.id === field.id) + 1
+        return (
+          <div key={field.id} className="pointer-events-auto">
+            <FieldItemComponent
+              field={field}
+              containerRef={containerRef}
+              isSelected={selectedId === field.id}
+              onSelect={onSelect}
+              onUpdate={onUpdate}
+              onUpdateCommit={onUpdateCommit}
+              onDelete={onDelete}
+              fieldIndex={fieldIndex}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -49,7 +49,12 @@ interface PageFieldLayerProps {
  fields: FieldItem[]
  selectedId: string | null
  signerColorMap: Map<string, string>
- onPageClick: (e: React.MouseEvent<HTMLDivElement>) => void
+ /** Active field type (drives drag-to-draw mode). `null` = selection/deselect only */
+ drawingType: FieldType | null
+ /** Called on empty-space click (no drag) to clear selection */
+ onEmptyClick: () => void
+ /** Called when user completes a drag-to-draw on an empty area */
+ onDrawComplete: (pageNum: number, rect: { x: number; y: number; width: number; height: number }) => void
  onSelect: (id: string) => void
  onTap: (id: string) => void
  onUpdate: (id: string, patch: Partial<Pick<FieldItem, "x" | "y" | "width" | "height">>) => void
@@ -58,6 +63,8 @@ interface PageFieldLayerProps {
  onRegisterRef: (pageNum: number, el: HTMLDivElement | null) => void
 }
 
+type DrawState = { startX: number; startY: number; curX: number; curY: number; pointerId: number }
+
 function PageFieldLayer({
  pageNum,
  pageWidth,
@@ -65,7 +72,9 @@ function PageFieldLayer({
  fields,
  selectedId,
  signerColorMap,
- onPageClick,
+ drawingType,
+ onEmptyClick,
+ onDrawComplete,
  onSelect,
  onTap,
  onUpdate,
@@ -74,7 +83,74 @@ function PageFieldLayer({
  onRegisterRef,
 }: PageFieldLayerProps) {
  const containerRef = useRef<HTMLDivElement>(null)
+ const [draw, setDraw] = useState<DrawState | null>(null)
  const pageFields = fields.filter((f) => f.page === pageNum)
+
+ // Pointer-down on empty page area: begin drag-to-draw (if a type is active)
+ // or remember starting point for click-to-deselect detection.
+ // Field items call e.stopPropagation(), so this only fires on the empty page surface.
+ const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+ if (e.button !== 0) return // left button only
+ if (!containerRef.current) return
+ const rect = containerRef.current.getBoundingClientRect()
+ const xPct = ((e.clientX - rect.left) / rect.width) * 100
+ const yPct = ((e.clientY - rect.top) / rect.height) * 100
+ e.currentTarget.setPointerCapture(e.pointerId)
+ setDraw({ startX: xPct, startY: yPct, curX: xPct, curY: yPct, pointerId: e.pointerId })
+ }
+
+ const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+ if (!draw || !containerRef.current) return
+ const rect = containerRef.current.getBoundingClientRect()
+ const xPct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+ const yPct = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100))
+ setDraw({ ...draw, curX: xPct, curY: yPct })
+ }
+
+ const handlePointerUp = (_e: React.PointerEvent<HTMLDivElement>) => {
+ if (!draw) return
+ const dx = Math.abs(draw.curX - draw.startX)
+ const dy = Math.abs(draw.curY - draw.startY)
+ const isTap = dx < 0.8 && dy < 0.8 // very small movement = tap
+
+ if (drawingType) {
+ if (isTap) {
+ // Short click with a type selected → place default-sized field centered on click
+ const def = FIELD_DEFAULTS[drawingType]
+ const fx = Math.max(0, Math.min(100 - def.width, draw.startX - def.width / 2))
+ const fy = Math.max(0, Math.min(100 - def.height, draw.startY - def.height / 2))
+ onDrawComplete(pageNum, { x: fx, y: fy, width: def.width, height: def.height })
+ } else {
+ // Drag completed → use the drawn rectangle
+ const x = Math.min(draw.startX, draw.curX)
+ const y = Math.min(draw.startY, draw.curY)
+ const width = Math.max(3, dx)
+ const height = Math.max(2, dy)
+ onDrawComplete(pageNum, { x, y, width, height })
+ }
+ } else if (isTap) {
+ // No type selected + tap on empty area → clear selection
+ onEmptyClick()
+ }
+ setDraw(null)
+ }
+
+ // Live preview rectangle during drag
+ let previewStyle: React.CSSProperties | null = null
+ if (draw && drawingType) {
+ const left = Math.min(draw.startX, draw.curX)
+ const top = Math.min(draw.startY, draw.curY)
+ const width = Math.abs(draw.curX - draw.startX)
+ const height = Math.abs(draw.curY - draw.startY)
+ if (width > 0.2 || height > 0.2) {
+ previewStyle = {
+ left: `${left}%`,
+ top: `${top}%`,
+ width: `${width}%`,
+ height: `${height}%`,
+ }
+ }
+ }
 
  return (
  <div
@@ -83,7 +159,10 @@ function PageFieldLayer({
  onRegisterRef(pageNum, el)
  }}
  className={`relative mb-4 shadow-md ${cursor}`}
- onClick={onPageClick}
+ onPointerDown={handlePointerDown}
+ onPointerMove={handlePointerMove}
+ onPointerUp={handlePointerUp}
+ onPointerCancel={handlePointerUp}
  >
  <PdfPage
  pageNumber={pageNum}
@@ -92,7 +171,11 @@ function PageFieldLayer({
  renderTextLayer={false}
  />
  <div className="absolute inset-0 pointer-events-none">
- {pageFields.map((field) => (
+ {pageFields.map((field) => {
+ // Sequential index within the same type across the whole document
+ const fieldIndex =
+ fields.filter((f) => f.type === field.type).findIndex((f) => f.id === field.id) + 1
+ return (
  <FieldItemComponent
  key={field.id}
  field={field}
@@ -104,8 +187,18 @@ function PageFieldLayer({
  onUpdateCommit={onUpdateCommit}
  onDelete={onDelete}
  signerColor={field.signerId ? signerColorMap.get(field.signerId) : undefined}
+ fieldIndex={fieldIndex}
  />
- ))}
+ )
+ })}
+
+ {/* Live draw preview */}
+ {previewStyle && (
+ <div
+ className="absolute rounded-sm border-2 border-dashed border-blue-500 bg-blue-400/20"
+ style={previewStyle}
+ />
+ )}
  </div>
  </div>
  )
@@ -175,17 +268,21 @@ export default function PdfViewer({
  else pageRefs.current.delete(pageNum)
  }
 
- const handlePageClick = (pageNum: number) => (e: React.MouseEvent<HTMLDivElement>) => {
- if (selectedId) { setSelectedId(null); return }
+ const handleEmptyClick = () => {
+ if (selectedId) setSelectedId(null)
+ }
+
+ const handleDrawComplete = (
+ pageNum: number,
+ rect: { x: number; y: number; width: number; height: number }
+ ) => {
  if (!selectedType) return
 
- const rect = e.currentTarget.getBoundingClientRect()
- const x = ((e.clientX - rect.left) / rect.width) * 100
- const y = ((e.clientY - rect.top) / rect.height) * 100
-
- const { width, height } = FIELD_DEFAULTS[selectedType]
- const fx = Math.max(0, Math.min(100 - width, x - width / 2))
- const fy = Math.max(0, Math.min(100 - height, y - height / 2))
+ // Clamp to page bounds
+ const width = Math.max(3, Math.min(rect.width, 100 - rect.x))
+ const height = Math.max(2, Math.min(rect.height, 100 - rect.y))
+ const fx = Math.max(0, Math.min(100 - width, rect.x))
+ const fy = Math.max(0, Math.min(100 - height, rect.y))
 
  const isPlaceholder = selectedSignerId?.startsWith("placeholder-") ?? false
  const dbSignerId = isPlaceholder ? undefined : (selectedSignerId ?? undefined)
@@ -364,9 +461,9 @@ export default function PdfViewer({
  const selectedField = selectedId ? (fields.find((f) => f.id === selectedId) ?? null) : null
  const cursor = selectedType ? "cursor-crosshair" : "cursor-default"
 
- // Show bottom sheet when manually opened, or when a field is selected for editing.
- // Do NOT show it when selectedType is active but sheet is closed (placement mode — status bar handles that).
- const showMobilePanel = mobileManualOpen || !!selectedField
+ // Show bottom sheet ONLY when the user explicitly opens it (tap "Fields" or "Properties").
+ // Never auto-open on field selection — that would cover the field and block drag/resize on mobile.
+ const showMobilePanel = mobileManualOpen
 
  const rightPanel = selectedField ? (
  <FieldPropertiesPanel
@@ -476,7 +573,9 @@ export default function PdfViewer({
  fields={fields}
  selectedId={selectedId}
  signerColorMap={signerColorMap}
- onPageClick={handlePageClick(pageNum)}
+ drawingType={selectedType}
+ onEmptyClick={handleEmptyClick}
+ onDrawComplete={handleDrawComplete}
  onSelect={(id) => { setSelectedId(id) }}
  onTap={(id) => { setSelectedId(id) }}
  onUpdate={handleUpdate}
@@ -493,7 +592,7 @@ export default function PdfViewer({
  {selectedType && !mobileManualOpen && (
  <div className="flex items-center gap-2 border-t border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700 sm:px-4">
  <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500 shrink-0" />
- <span>แตะ PDF เพื่อวาง Tap PDF to place a </span>
+ <span>คลิกค้างแล้วลากบน PDF เพื่อวาด Click and drag on PDF to draw a </span>
  <strong>{selectedType}</strong>
  <span className="hidden sm:inline"> ฟิลด์ field</span>
  <button
