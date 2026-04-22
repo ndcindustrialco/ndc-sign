@@ -30,6 +30,17 @@ const UploadSchema = z.object({
   }),
 })
 
+const FinalizeSchema = z.object({
+  storagePath: z.string().min(1).max(512),
+  name: z.string().min(1).max(255),
+  mimeType: z.enum(ALLOWED_MIME_TYPES, {
+    error: "Only PDF files are allowed",
+  }),
+  size: z.number().int().positive().max(MAX_FILE_SIZE_BYTES, {
+    error: "File must be smaller than 10 MB",
+  }),
+})
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -39,50 +50,87 @@ export type ActionResult<T = void> =
   | { ok: false; error: string }
 
 // ---------------------------------------------------------------------------
-// uploadDocument
+// createDocumentUploadUrl
+//
+// Step 1 of 2 for the direct-to-Supabase upload flow.
+// Vercel caps function request bodies at 4.5 MB, so the browser uploads the
+// PDF straight to Supabase Storage using the signed URL returned here; the
+// file bytes never pass through a Server Action.
 // ---------------------------------------------------------------------------
 
-export async function uploadDocument(
-  formData: FormData
-): Promise<ActionResult<{ id: string }>> {
+export async function createDocumentUploadUrl(input: {
+  name: string
+  mimeType: string
+  size: number
+}): Promise<ActionResult<{ storagePath: string; token: string }>> {
   const session = await auth()
   if (!session?.user?.id) {
     return { ok: false, error: "Unauthorized" }
   }
 
-  const file = formData.get("file")
-  if (!(file instanceof File)) {
-    return { ok: false, error: "No file provided" }
-  }
-
-  const validated = UploadSchema.safeParse({
-    name: file.name,
-    mimeType: file.type,
-    size: file.size,
-  })
-
+  const validated = UploadSchema.safeParse(input)
   if (!validated.success) {
     const message = validated.error.issues[0]?.message ?? "Invalid file"
     return { ok: false, error: message }
   }
 
-  const { name, mimeType, size } = validated.data
-
-  // Build a unique storage path: userId/timestamp-filename
+  const { name } = validated.data
   const ext = name.split(".").pop() ?? "pdf"
   const storagePath = `${session.user.id}/${Date.now()}.${ext}`
 
-  const bytes = await file.arrayBuffer()
-
-  const { error: storageError } = await supabaseAdmin.storage
+  const { data, error } = await supabaseAdmin.storage
     .from(STORAGE_BUCKET)
-    .upload(storagePath, bytes, {
-      contentType: mimeType,
-      upsert: false,
-    })
+    .createSignedUploadUrl(storagePath)
 
-  if (storageError) {
-    return { ok: false, error: "Upload failed. Please try again." }
+  if (error || !data) {
+    return { ok: false, error: "Could not prepare upload. Please try again." }
+  }
+
+  return { ok: true, data: { storagePath: data.path, token: data.token } }
+}
+
+// ---------------------------------------------------------------------------
+// finalizeDocumentUpload
+//
+// Step 2 of 2. Called after the browser has PUT the file to Supabase. We
+// re-validate metadata, verify the object actually exists under the caller's
+// prefix, then persist the Document row + audit event.
+// ---------------------------------------------------------------------------
+
+export async function finalizeDocumentUpload(input: {
+  storagePath: string
+  name: string
+  mimeType: string
+  size: number
+}): Promise<ActionResult<{ id: string }>> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { ok: false, error: "Unauthorized" }
+  }
+
+  const validated = FinalizeSchema.safeParse(input)
+  if (!validated.success) {
+    const message = validated.error.issues[0]?.message ?? "Invalid input"
+    return { ok: false, error: message }
+  }
+
+  const { storagePath, name, mimeType, size } = validated.data
+
+  // Storage paths are namespaced by user id — prevents a caller from
+  // finalizing a path that belongs to someone else.
+  if (!storagePath.startsWith(`${session.user.id}/`)) {
+    return { ok: false, error: "Invalid storage path" }
+  }
+
+  // Confirm the object really landed in the bucket before creating the row.
+  const prefix = storagePath.slice(0, storagePath.lastIndexOf("/"))
+  const filename = storagePath.slice(storagePath.lastIndexOf("/") + 1)
+  const { data: listed, error: listError } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .list(prefix, { search: filename, limit: 1 })
+
+  if (listError || !listed || listed.length === 0) {
+    return { ok: false, error: "Upload not found. Please try again." }
   }
 
   const document = await prisma.document.create({

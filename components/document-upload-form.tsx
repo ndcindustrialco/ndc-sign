@@ -2,7 +2,11 @@
 
 import { useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { uploadDocument } from "@/lib/actions/document"
+import {
+  createDocumentUploadUrl,
+  finalizeDocumentUpload,
+} from "@/lib/actions/document"
+import { supabaseBrowser, STORAGE_BUCKET } from "@/lib/supabase-browser"
 
 const MAX_MB = 10
 const ALLOWED_TYPE = "application/pdf"
@@ -46,18 +50,43 @@ export default function DocumentUploadForm() {
     e.preventDefault()
     if (!file) return
 
-    const formData = new FormData()
-    formData.append("file", file)
+    const selectedFile = file
 
     startTransition(async () => {
-      const result = await uploadDocument(formData)
-      if (!result.ok) {
-        setError(result.error)
+      const meta = {
+        name: selectedFile.name,
+        mimeType: selectedFile.type,
+        size: selectedFile.size,
+      }
+
+      const prepared = await createDocumentUploadUrl(meta)
+      if (!prepared.ok) {
+        setError(prepared.error)
         return
       }
+
+      const { storagePath, token } = prepared.data
+      const { error: uploadError } = await supabaseBrowser.storage
+        .from(STORAGE_BUCKET)
+        .uploadToSignedUrl(storagePath, token, selectedFile, {
+          contentType: selectedFile.type,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        setError("อัปโหลดล้มเหลว Upload failed. Please try again.")
+        return
+      }
+
+      const finalized = await finalizeDocumentUpload({ storagePath, ...meta })
+      if (!finalized.ok) {
+        setError(finalized.error)
+        return
+      }
+
       setFile(null)
       if (inputRef.current) inputRef.current.value = ""
-      router.push(`/dashboard/documents/${result.data.id}/edit`)
+      router.push(`/dashboard/documents/${finalized.data.id}/edit`)
     })
   }
 
