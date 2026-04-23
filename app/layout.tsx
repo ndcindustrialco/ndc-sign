@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "eSign — E-Signature Platform",
-  description: "Secure document signing platform",
+  title: "ndc-e-signature",
+  description: "A simple e-signature application built with Next.js and TypeScript.",
 };
 
 export default function RootLayout({
