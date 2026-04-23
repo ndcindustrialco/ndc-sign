@@ -4,7 +4,7 @@ import { useRef, useState, useTransition, useEffect } from "react"
 import dynamic from "next/dynamic"
 import type { FieldItem, FieldType } from "@/lib/actions/field"
 import { createField, updateField, deleteField } from "@/lib/actions/field"
-import { FIELD_DEFAULTS } from "@/lib/field-constants"
+import { FIELD_DEFAULTS, MAX_PAGE_WIDTH } from "@/lib/field-constants"
 import FieldItemComponent from "./field-item"
 import FieldPanel, { SIGNER_COLORS } from "./field-panel"
 import FieldPropertiesPanel from "@/components/field-properties-panel"
@@ -232,7 +232,7 @@ export default function PdfViewer({
  const [mobileManualOpen, setMobileManualOpen] = useState(false)
 
  const [numPages, setNumPages] = useState(1)
- const [pageWidth, setPageWidth] = useState(794)
+ const [pageWidth, setPageWidth] = useState(MAX_PAGE_WIDTH)
  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
  const [, startTransition] = useTransition()
  const clipboardRef = useRef<FieldItem | null>(null)
@@ -250,14 +250,14 @@ export default function PdfViewer({
 
  useEffect(() => {
  if (containerRef.current) {
- setPageWidth(Math.min(containerRef.current.clientWidth, 794))
+ setPageWidth(Math.min(containerRef.current.clientWidth, MAX_PAGE_WIDTH))
  }
  }, [])
 
  const onDocumentLoad = ({ numPages: n }: { numPages: number }) => {
  setNumPages(n)
  if (containerRef.current) {
- setPageWidth(Math.min(containerRef.current.clientWidth, 794))
+ setPageWidth(Math.min(containerRef.current.clientWidth, MAX_PAGE_WIDTH))
  }
  }
 

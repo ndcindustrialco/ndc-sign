@@ -1,8 +1,9 @@
 "use client"
 
-import { useRef, useState, useCallback } from "react"
+import { useRef, useState, useCallback, useEffect } from "react"
 import dynamic from "next/dynamic"
 import type { FieldType } from "@/lib/actions/field"
+import { MAX_PAGE_WIDTH } from "@/lib/field-constants"
 
 const PdfDocument = dynamic(
  () => import("react-pdf").then((m) => ({ default: m.Document })),
@@ -82,15 +83,33 @@ export default function SigningPdfView({
 }: SigningPdfViewProps) {
  const containerRef = useRef<HTMLDivElement>(null)
  const [numPages, setNumPages] = useState(0)
- const [pageWidth, setPageWidth] = useState(800)
+ const [pageWidth, setPageWidth] = useState(MAX_PAGE_WIDTH)
 
- const onDocumentLoad = useCallback(({ numPages: n }: { numPages: number }) => {
- setNumPages(n)
- if (containerRef.current) setPageWidth(containerRef.current.clientWidth)
+ const measure = useCallback(() => {
+ if (!containerRef.current) return
+ setPageWidth(Math.min(containerRef.current.clientWidth, MAX_PAGE_WIDTH))
  }, [])
 
+ const onDocumentLoad = useCallback(
+ ({ numPages: n }: { numPages: number }) => {
+ setNumPages(n)
+ measure()
+ },
+ [measure]
+ )
+
+ useEffect(() => {
+ measure()
+ const ro = new ResizeObserver(measure)
+ if (containerRef.current) ro.observe(containerRef.current)
+ return () => ro.disconnect()
+ }, [measure])
+
  return (
- <div ref={containerRef} className="overflow-hidden rounded-xl border border-zinc-200">
+ <div
+ ref={containerRef}
+ className="flex flex-col items-center overflow-hidden rounded-xl border border-zinc-200"
+ >
  <PdfDocument
  file={url}
  onLoadSuccess={onDocumentLoad}
@@ -104,6 +123,7 @@ export default function SigningPdfView({
  <div
  key={pageNum}
  className="relative border-b border-zinc-200 last:border-0"
+ style={{ width: pageWidth }}
  >
  <PdfPage
  pageNumber={pageNum}

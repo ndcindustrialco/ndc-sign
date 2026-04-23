@@ -1,5 +1,10 @@
 import type { FieldType } from "@/lib/actions/field"
 
+// Max rendered PDF page width (px). Field coordinates are stored as % of the
+// rendered page, so editor and signing MUST render at the same width — any
+// drift here shifts every field on the signing page.
+export const MAX_PAGE_WIDTH = 794
+
 export const FIELD_DEFAULTS: Record<FieldType, { width: number; height: number }> = {
   SIGNATURE:  { width: 25, height: 8 },
   INITIALS:   { width: 12, height: 6 },
