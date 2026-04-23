@@ -30,8 +30,7 @@ function baseLayout(content: string): string {
           <tr>
             <td style="padding-top:40px;border-top:1px solid #f4f4f5;margin-top:40px;">
               <p style="margin:0;font-size:12px;color:#a1a1aa;line-height:1.6;">
-                อีเมลนี้ส่งจาก ${APP_NAME} หากคุณไม่ได้เกี่ยวข้อง สามารถข้ามอีเมลนี้ได้<br/>
-                This email was sent by ${APP_NAME}. If you did not expect this, you can ignore it.
+                ส่งอัตโนมัติจาก ${APP_NAME} / Automated message from ${APP_NAME}
               </p>
             </td>
           </tr>
@@ -81,21 +80,18 @@ export function renderInviteEmail(data: InviteEmailData): string {
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      เอกสารรอลงนาม / Document ready to sign
+      เอกสารรอลงนาม / Sign request
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      ${escapeHtml(data.senderName)} เชิญคุณลงนามในเอกสาร
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span><br/>
-      ${escapeHtml(data.senderName)} invited you to sign
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
+      ${escapeHtml(data.senderName)} ขอให้คุณลงนาม
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
     </p>
     ${messageBlock}
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">เอกสาร / Document</span> &nbsp;${escapeHtml(data.documentName)}<br/>
-          <span style="color:#18181b;">ส่งโดย / From</span> &nbsp;${escapeHtml(data.senderName)}<br/>
+          <span style="color:#18181b;">ผู้ส่ง / From</span> &nbsp;${escapeHtml(data.senderName)}<br/>
           <span style="color:#18181b;">หมดอายุ / Expires</span> &nbsp;${expires}
         </td>
       </tr>
@@ -106,19 +102,15 @@ export function renderInviteEmail(data: InviteEmailData): string {
         <td style="border-radius:8px;background:${ACCENT_COLOR};">
           <a href="${escapeHtml(data.signingUrl)}"
              style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:8px;">
-            ตรวจสอบและลงนาม / Review &amp; Sign
+            ลงนาม / Sign
           </a>
         </td>
       </tr>
     </table>
 
     <p style="margin:20px 0 0;font-size:12px;color:#a1a1aa;line-height:1.6;">
-      หรือคัดลอกลิงก์นี้ / Or copy this link:<br/>
+      ลิงก์ใช้ได้ครั้งเดียว / Single-use link<br/>
       <a href="${escapeHtml(data.signingUrl)}" style="color:${ACCENT_COLOR};word-break:break-all;">${escapeHtml(data.signingUrl)}</a>
-    </p>
-    <p style="margin:6px 0 0;font-size:12px;color:#a1a1aa;">
-      ลิงก์นี้ใช้ได้ครั้งเดียวและหมดอายุวันที่ ${expires}<br/>
-      This link is single-use and expires on ${expires}.
     </p>
   `
   return baseLayout(content)
@@ -142,24 +134,20 @@ export function renderSignedNotificationEmail(data: SignedNotificationData): str
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      มีคนลงนามแล้ว / Document signed
+      มีคนลงนามแล้ว / Signed
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.signerName)}</span>
-      (${escapeHtml(data.signerEmail)}) ลงนามในเอกสาร
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span> แล้ว
-      ไฟล์ที่เซ็นแล้วและใบรับรองแนบมาด้วย<br/>
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.signerName)}</span>
-      (${escapeHtml(data.signerEmail)}) has signed
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
-      The signed PDF and audit certificate are attached.
+      ลงนาม
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
+      แล้ว (ไฟล์แนบ)
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">ลงนามโดย / Signed by</span> &nbsp;${escapeHtml(data.signerName)} &lt;${escapeHtml(data.signerEmail)}&gt;<br/>
-          <span style="color:#18181b;">เวลา / Signed at</span> &nbsp;${signedAt}
+          <span style="color:#18181b;">ผู้ลงนาม / Signer</span> &nbsp;${escapeHtml(data.signerName)} &lt;${escapeHtml(data.signerEmail)}&gt;<br/>
+          <span style="color:#18181b;">เวลา / At</span> &nbsp;${signedAt}
         </td>
       </tr>
     </table>
@@ -169,7 +157,7 @@ export function renderSignedNotificationEmail(data: SignedNotificationData): str
         <td style="border-radius:8px;border:1px solid #e4e4e7;">
           <a href="${escapeHtml(data.documentUrl)}"
              style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#18181b;text-decoration:none;border-radius:8px;">
-            ดูเอกสาร / View Document
+            ดูเอกสาร / View
           </a>
         </td>
       </tr>
@@ -195,21 +183,18 @@ export function renderCompletedEmail(data: CompletedNotificationData): string {
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      ลงนามครบแล้ว / All signatures collected
+      ลงนามครบแล้ว / Completed
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-      ลงนามครบทั้ง ${data.totalSigners} คนแล้ว สามารถดาวน์โหลดไฟล์ที่เซ็นแล้วได้เลย<br/>
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-      has been signed by all ${data.totalSigners} signer${data.totalSigners !== 1 ? "s" : ""}. The signed PDF is ready to download.
+      ลงนามครบ ${data.totalSigners} คน พร้อมดาวน์โหลด
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">เอกสาร / Document</span> &nbsp;${escapeHtml(data.documentName)}<br/>
-          <span style="color:#18181b;">เสร็จเมื่อ / Completed at</span> &nbsp;${completedAt}<br/>
-          <span style="color:#18181b;">ผู้ลงนามทั้งหมด / Total signers</span> &nbsp;${data.totalSigners}
+          <span style="color:#18181b;">เสร็จเมื่อ / At</span> &nbsp;${completedAt}<br/>
+          <span style="color:#18181b;">ผู้ลงนาม / Signers</span> &nbsp;${data.totalSigners}
         </td>
       </tr>
     </table>
@@ -219,7 +204,7 @@ export function renderCompletedEmail(data: CompletedNotificationData): string {
         <td style="border-radius:8px;background:${ACCENT_COLOR};">
           <a href="${escapeHtml(data.documentUrl)}"
              style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:8px;">
-            ดาวน์โหลด PDF / Download Signed PDF
+            ดาวน์โหลด / Download
           </a>
         </td>
       </tr>
@@ -242,17 +227,11 @@ export interface VoidNotificationData {
 export function renderVoidNotificationEmail(data: VoidNotificationData): string {
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      เอกสารถูกยกเลิก / Document cancelled
+      เอกสารถูกยกเลิก / Cancelled
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      สวัสดีคุณ ${escapeHtml(data.signerName)},<br/>
-      คำขอลงนามเอกสาร
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-      ถูกยกเลิกโดย ${escapeHtml(data.ownerName)} ไม่ต้องดำเนินการใดๆ เพิ่มเติม<br/><br/>
-      Hi ${escapeHtml(data.signerName)},<br/>
-      The signing request for
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-      has been cancelled by ${escapeHtml(data.ownerName)}. No further action is needed.
+      ถูกยกเลิกโดย ${escapeHtml(data.ownerName)} / cancelled by ${escapeHtml(data.ownerName)}
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
@@ -264,8 +243,7 @@ export function renderVoidNotificationEmail(data: VoidNotificationData): string 
     </table>
 
     <p style="margin:0;font-size:13px;color:#a1a1aa;">
-      หากมีข้อสงสัย ติดต่อ ${escapeHtml(data.ownerName)} โดยตรง<br/>
-      If you have questions, please contact ${escapeHtml(data.ownerName)} directly.
+      สอบถาม ติดต่อ ${escapeHtml(data.ownerName)} / Contact ${escapeHtml(data.ownerName)} for questions
     </p>
   `
   return baseLayout(content)
@@ -287,21 +265,18 @@ export interface DeclineNotificationData {
 export function renderDeclineNotificationEmail(data: DeclineNotificationData): string {
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      มีคนปฏิเสธลงนาม / Signing declined
+      ปฏิเสธลงนาม / Declined
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.signerName)}</span>
-      (${escapeHtml(data.signerEmail)}) ปฏิเสธลงนามเอกสาร
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span><br/>
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.signerName)}</span>
-      (${escapeHtml(data.signerEmail)}) has declined to sign
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
+      ปฏิเสธลงนาม
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">ปฏิเสธโดย / Declined by</span> &nbsp;${escapeHtml(data.signerName)} &lt;${escapeHtml(data.signerEmail)}&gt;<br/>
+          <span style="color:#18181b;">ผู้ปฏิเสธ / By</span> &nbsp;${escapeHtml(data.signerName)} &lt;${escapeHtml(data.signerEmail)}&gt;<br/>
           <span style="color:#18181b;">เหตุผล / Reason</span> &nbsp;${escapeHtml(data.declineReason)}
         </td>
       </tr>
@@ -312,7 +287,7 @@ export function renderDeclineNotificationEmail(data: DeclineNotificationData): s
         <td style="border-radius:8px;border:1px solid #e4e4e7;">
           <a href="${escapeHtml(data.documentUrl)}"
              style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#18181b;text-decoration:none;border-radius:8px;">
-            ดูเอกสาร / View Document
+            ดูเอกสาร / View
           </a>
         </td>
       </tr>
@@ -337,32 +312,25 @@ export function renderSignerCopyEmail(data: SignerCopyData): string {
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      สำเนาเอกสารที่เซ็นแล้ว / Your signed copy
+      สำเนาเอกสาร / Your signed copy
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      สวัสดีคุณ ${escapeHtml(data.signerName)},<br/>
-      ขอบคุณที่ลงนามเอกสาร
+      ขอบคุณที่ลงนาม
       <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-      ไฟล์ที่เซ็นแล้วและใบรับรองแนบมาในอีเมลนี้<br/><br/>
-      Hi ${escapeHtml(data.signerName)},<br/>
-      Thank you for signing
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
-      Your signed copy and audit certificate are attached.
+      ไฟล์แนบมาพร้อมอีเมลนี้
     </p>
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">เอกสาร / Document</span> &nbsp;${escapeHtml(data.documentName)}<br/>
-          <span style="color:#18181b;">เวลา / Signed at</span> &nbsp;${signedAt}<br/>
-          <span style="color:#18181b;">ส่งโดย / Sent by</span> &nbsp;${escapeHtml(data.ownerName)}
+          <span style="color:#18181b;">เวลา / At</span> &nbsp;${signedAt}<br/>
+          <span style="color:#18181b;">ผู้ส่ง / From</span> &nbsp;${escapeHtml(data.ownerName)}
         </td>
       </tr>
     </table>
 
     <p style="margin:0;font-size:13px;color:#a1a1aa;">
-      กรุณาเก็บอีเมลนี้ไว้เป็นหลักฐาน หากมีข้อสงสัย ติดต่อ ${escapeHtml(data.ownerName)} โดยตรง<br/>
-      Please keep this email for your records. If you have questions, contact ${escapeHtml(data.ownerName)} directly.
+      เก็บอีเมลนี้ไว้เป็นหลักฐาน / Keep this email for your records
     </p>
   `
   return baseLayout(content)
@@ -390,21 +358,18 @@ export function renderReminderEmail(data: ReminderEmailData): string {
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
-      แจ้งเตือน: เอกสารรอลงนาม / Reminder: Document awaiting your signature
+      แจ้งเตือนลงนาม / Reminder
     </h1>
     <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      ${escapeHtml(data.senderName)} ฝากเตือนให้คุณลงนามในเอกสาร
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span><br/>
-      ${escapeHtml(data.senderName)} is reminding you to sign
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>.
+      ${escapeHtml(data.senderName)} ฝากเตือนให้ลงนาม
+      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
     </p>
     ${messageBlock}
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
         <td style="font-size:13px;color:#71717a;line-height:1.8;">
-          <span style="color:#18181b;">เอกสาร / Document</span> &nbsp;${escapeHtml(data.documentName)}<br/>
-          <span style="color:#18181b;">ส่งโดย / From</span> &nbsp;${escapeHtml(data.senderName)}<br/>
+          <span style="color:#18181b;">ผู้ส่ง / From</span> &nbsp;${escapeHtml(data.senderName)}<br/>
           <span style="color:#18181b;">หมดอายุ / Expires</span> &nbsp;${expires}
         </td>
       </tr>
@@ -415,19 +380,15 @@ export function renderReminderEmail(data: ReminderEmailData): string {
         <td style="border-radius:8px;background:${ACCENT_COLOR};">
           <a href="${escapeHtml(data.signingUrl)}"
              style="display:inline-block;padding:11px 24px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:8px;">
-            ตรวจสอบและลงนาม / Review &amp; Sign
+            ลงนาม / Sign
           </a>
         </td>
       </tr>
     </table>
 
     <p style="margin:20px 0 0;font-size:12px;color:#a1a1aa;line-height:1.6;">
-      หรือคัดลอกลิงก์นี้ / Or copy this link:<br/>
+      ลิงก์ใช้ได้ครั้งเดียว / Single-use link<br/>
       <a href="${escapeHtml(data.signingUrl)}" style="color:${ACCENT_COLOR};word-break:break-all;">${escapeHtml(data.signingUrl)}</a>
-    </p>
-    <p style="margin:6px 0 0;font-size:12px;color:#a1a1aa;">
-      ลิงก์นี้ใช้ได้ครั้งเดียวและหมดอายุวันที่ ${expires}<br/>
-      This link is single-use and expires on ${expires}.
     </p>
   `
   return baseLayout(content)
