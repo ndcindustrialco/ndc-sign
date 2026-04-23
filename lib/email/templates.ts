@@ -74,19 +74,18 @@ export interface InviteEmailData {
 export function renderInviteEmail(data: InviteEmailData): string {
   const expires = formatDate(data.expiresAt)
 
-  const messageBlock = data.customMessage
-    ? `<p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.7;white-space:pre-line;">${escapeHtml(data.customMessage)}</p>`
-    : ""
+  const bodyBlock = data.customMessage
+    ? `<p style="margin:0 0 24px;font-size:14px;color:#27272a;line-height:1.7;white-space:pre-wrap;">${escapeHtml(data.customMessage)}</p>`
+    : `<p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
+         ${escapeHtml(data.senderName)} ขอให้คุณลงนาม
+         <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
+       </p>`
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
       เอกสารรอลงนาม / Sign request
     </h1>
-    <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      ${escapeHtml(data.senderName)} ขอให้คุณลงนาม
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-    </p>
-    ${messageBlock}
+    ${bodyBlock}
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
@@ -352,19 +351,18 @@ export interface ReminderEmailData {
 export function renderReminderEmail(data: ReminderEmailData): string {
   const expires = formatDate(data.expiresAt)
 
-  const messageBlock = data.customMessage
-    ? `<p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.7;white-space:pre-line;">${escapeHtml(data.customMessage)}</p>`
-    : ""
+  const bodyBlock = data.customMessage
+    ? `<p style="margin:0 0 24px;font-size:14px;color:#27272a;line-height:1.7;white-space:pre-wrap;">${escapeHtml(data.customMessage)}</p>`
+    : `<p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
+         ${escapeHtml(data.senderName)} ฝากเตือนให้ลงนาม
+         <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
+       </p>`
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">
       แจ้งเตือนลงนาม / Reminder
     </h1>
-    <p style="margin:0 0 24px;font-size:14px;color:#71717a;line-height:1.6;">
-      ${escapeHtml(data.senderName)} ฝากเตือนให้ลงนาม
-      <span style="color:#18181b;font-weight:500;">${escapeHtml(data.documentName)}</span>
-    </p>
-    ${messageBlock}
+    ${bodyBlock}
 
     <table cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:8px;padding:14px 16px;margin-bottom:28px;width:100%;">
       <tr>
