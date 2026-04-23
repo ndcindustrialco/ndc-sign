@@ -48,15 +48,15 @@ function baseLayout(content: string): string {
 // ---------------------------------------------------------------------------
 
 function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  const formatted = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
+    timeZone: "Asia/Bangkok",
   }).format(date)
+  return `${formatted} (UTC+7)`
 }
 
 // ---------------------------------------------------------------------------

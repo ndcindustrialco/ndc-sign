@@ -20,21 +20,199 @@ type FieldWithSubmission = {
 
 // ---------------------------------------------------------------------------
 // Coordinate conversion
-// pdf-lib origin: bottom-left
-// Our overlay origin: top-left
+//
+// PDFs can carry /Rotate (0/90/180/270). Viewers — including react-pdf in the
+// signer UI — display the page already rotated, so field %-coords are in the
+// *visual* (rotated) frame. We must map them back to the page's native
+// (unrotated) PDF coordinates before drawing, and counter-rotate drawn content
+// so it stays upright after the viewer applies /Rotate.
+//
+// We work in a per-field **local box frame**: origin at the visual top-left
+// corner of the field, u → right, v → down, sizes in the same units as the
+// visual page. Everything the caller expresses (sub-rect offset, auto-rotated
+// signature, text baseline) lives in this frame; `composeDraw()` maps it to
+// pdf-lib's drawImage/drawText params regardless of page rotation.
 // ---------------------------------------------------------------------------
 
-function toPdfCoords(
+type BoxFrame = {
+  // Origin of the local box frame in PDF (unrotated) coordinates.
+  originX: number
+  originY: number
+  // Unit vectors for local u (right) and v (down) axes, expressed in PDF space.
+  uX: number
+  uY: number
+  vX: number
+  vY: number
+  // Visual-space box dimensions (local frame extent).
+  w: number
+  h: number
+  // Page rotation applied (0/90/180/270), CW, per PDF /Rotate spec.
+  pageRotation: 0 | 90 | 180 | 270
+}
+
+function getBoxFrame(
   field: { x: number; y: number; width: number; height: number },
   pageWidth: number,
-  pageHeight: number
-) {
-  const x = (field.x / 100) * pageWidth
-  const w = (field.width / 100) * pageWidth
-  const h = (field.height / 100) * pageHeight
-  // y from top → convert to y from bottom
-  const y = pageHeight - (field.y / 100) * pageHeight - h
-  return { x, y, w, h }
+  pageHeight: number,
+  rotation: number
+): BoxFrame {
+  const rot = (((rotation % 360) + 360) % 360) as 0 | 90 | 180 | 270
+
+  // Visual page dimensions (what the signer sees).
+  const visualW = rot === 90 || rot === 270 ? pageHeight : pageWidth
+  const visualH = rot === 90 || rot === 270 ? pageWidth : pageHeight
+
+  const vx = (field.x / 100) * visualW
+  const vy = (field.y / 100) * visualH
+  const w = (field.width / 100) * visualW
+  const h = (field.height / 100) * visualH
+
+  // Visual point (U, V) → PDF (bottom-left origin):
+  //   r=  0: (U,            pageH - V)
+  //   r= 90: (V,            U)
+  //   r=180: (pageW - U,    V)
+  //   r=270: (pageW - V,    pageH - U)
+  //
+  // Origin = visual box TL = (vx, vy). Unit vectors = partials wrt (U, V).
+  switch (rot) {
+    case 0:
+      return {
+        originX: vx,
+        originY: pageHeight - vy,
+        uX: 1, uY: 0,
+        vX: 0, vY: -1,
+        w, h, pageRotation: rot,
+      }
+    case 90:
+      return {
+        originX: vy,
+        originY: vx,
+        uX: 0, uY: 1,
+        vX: 1, vY: 0,
+        w, h, pageRotation: rot,
+      }
+    case 180:
+      return {
+        originX: pageWidth - vx,
+        originY: vy,
+        uX: -1, uY: 0,
+        vX: 0, vY: 1,
+        w, h, pageRotation: rot,
+      }
+    case 270:
+      return {
+        originX: pageWidth - vy,
+        originY: pageHeight - vx,
+        uX: 0, uY: -1,
+        vX: -1, vY: 0,
+        w, h, pageRotation: rot,
+      }
+  }
+}
+
+// Map a local (u, v) point to PDF coordinates.
+function localPoint(frame: BoxFrame, u: number, v: number) {
+  return {
+    x: frame.originX + u * frame.uX + v * frame.vX,
+    y: frame.originY + u * frame.uY + v * frame.vY,
+  }
+}
+
+type DrawParams = {
+  x: number
+  y: number
+  width: number
+  height: number
+  rotateDeg: 0 | 90 | 180 | 270
+}
+
+// Compose a local sub-rect draw with the page's rotation.
+//
+// Inputs are in the *local* box frame:
+//   (u, v)   = top-left of the content sub-rect
+//   (cw, ch) = content size along local +u and +v axes, *before* any
+//              in-frame rotation
+//   localCwRot = CW rotation of the content within the local frame, around
+//                the sub-rect's TL (u, v). 0 by default; 90 when auto-rotating
+//                a landscape signature into a portrait cell.
+//
+// Output is pdf-lib drawImage/drawText params such that the content appears at
+// the intended place/orientation after the PDF viewer re-applies /Rotate.
+//
+// Derivation:
+//   - Local CW rotation = CCW rotation in PDF space (local v-axis points down,
+//     PDF y-axis points up), so PDF-space CCW rotation θ = localCwRot - pageRot.
+//   - pdf-lib's `rotate: degrees(θ)` rotates the source rect CCW by θ around
+//     pivot (x, y). For axis-aligned multiples of 90°, the axis-aligned bbox
+//     of the rotated rect has a specific corner that coincides with pivot:
+//         θ =   0 → pivot = bbox BL
+//         θ =  90 → pivot = bbox BR
+//         θ = 180 → pivot = bbox TR
+//         θ = 270 → pivot = bbox TL
+//   - The PDF-space bbox itself is the axis-aligned bbox of the local sub-rect
+//     mapped through the frame (since the frame's u/v axes are axis-aligned in
+//     PDF space for multiples of 90°).
+// Caller convention: (u, v, bboxW, bboxH) is the *final* bounding box of the
+// content in local space — already reflecting any in-box rotation. localCwRot
+// only tells us whether the source image is oriented along the bbox or rotated
+// 90° CW within it.
+//
+// Internally:
+//   - PDF-space bbox = axis-aligned image of the local bbox under the frame.
+//   - pdf-lib draws at (width_src, height_src) and rotates CCW by rotateDeg
+//     around a pivot corner of the PDF bbox:
+//         rotateDeg   pivot       (width_src, height_src)
+//             0       BL          (bboxW, bboxH)
+//            90       BR          (bboxH, bboxW)
+//           180       TR          (bboxW, bboxH)
+//           270       TL          (bboxH, bboxW)
+function composeDraw(
+  frame: BoxFrame,
+  u: number, v: number,
+  bboxW: number, bboxH: number,
+  localCwRot: 0 | 90 = 0
+): DrawParams {
+  const raw = localCwRot - frame.pageRotation
+  const rotateDeg = (((raw % 360) + 360) % 360) as 0 | 90 | 180 | 270
+
+  // PDF-space axis-aligned bbox of the local sub-rect.
+  const corners = [
+    localPoint(frame, u, v),
+    localPoint(frame, u + bboxW, v),
+    localPoint(frame, u, v + bboxH),
+    localPoint(frame, u + bboxW, v + bboxH),
+  ]
+  const xs = corners.map((p) => p.x)
+  const ys = corners.map((p) => p.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+
+  let pivotX: number
+  let pivotY: number
+  let width: number
+  let height: number
+  switch (rotateDeg) {
+    case 0:
+      pivotX = minX; pivotY = minY
+      width = maxX - minX; height = maxY - minY
+      break
+    case 90:
+      pivotX = maxX; pivotY = minY
+      width = maxY - minY; height = maxX - minX
+      break
+    case 180:
+      pivotX = maxX; pivotY = maxY
+      width = maxX - minX; height = maxY - minY
+      break
+    case 270:
+      pivotX = minX; pivotY = maxY
+      width = maxY - minY; height = maxX - minX
+      break
+  }
+
+  return { x: pivotX, y: pivotY, width, height, rotateDeg }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +301,9 @@ export async function generateSignedPdf(
 
     const page = pages[pageIndex]
     const { width: pageWidth, height: pageHeight } = page.getSize()
-    const { x, y, w, h } = toPdfCoords(field, pageWidth, pageHeight)
+    const pageRotation = page.getRotation().angle
+    const frame = getBoxFrame(field, pageWidth, pageHeight, pageRotation)
+    const { w, h } = frame
 
     const isImageField = ["SIGNATURE", "INITIALS", "STAMP", "IMAGE"].includes(field.type)
     if (isImageField) {
@@ -141,68 +321,81 @@ export async function generateSignedPdf(
         const rotate = imgLandscape !== boxLandscape
 
         if (rotate) {
-          // When rotated 90°, the image's width spans the box height & vice versa.
-          // Fit the rotated image (swapped dims) inside the box, preserving aspect.
+          // Rotated 90° in-box: the bbox inside the field cell has swapped
+          // aspect relative to the source image. Find the largest bbox that
+          // fits inside (w, h) while the rotated image preserves its aspect.
           const imgAspect = pngImage.width / pngImage.height
-          // After rotation, "drawn width on page" = h' ≤ h, "drawn height" = w' ≤ w
-          // Solve for largest rotated image that fits inside (w, h):
-          //   drawn_w_rotated = imgH_scaled, drawn_h_rotated = imgW_scaled
-          //   with imgW_scaled / imgH_scaled = imgAspect
-          let drawnW = h
-          let drawnH = h * imgAspect
-          if (drawnH > w) {
-            drawnH = w
-            drawnW = w / imgAspect
+          // After CW 90°, bboxW corresponds to the image's short side (its
+          // height-after-rotation) and bboxH to its long side.
+          let bboxW = h
+          let bboxH = h * imgAspect
+          if (bboxH > w) {
+            bboxH = w
+            bboxW = w / imgAspect
           }
-          // pdf-lib rotates around (x, y); after rotate(90°) the image grows into +x, -y
-          // Place so the rotated bbox is centered inside the field.
-          const bboxW = drawnH
-          const bboxH = drawnW
-          const offsetX = (w - bboxW) / 2
-          const offsetY = (h - bboxH) / 2
+          const offsetU = (w - bboxW) / 2
+          const offsetV = (h - bboxH) / 2
+          const d = composeDraw(frame, offsetU, offsetV, bboxW, bboxH, 90)
           page.drawImage(pngImage, {
-            x: x + offsetX + bboxW,
-            y: y + offsetY,
-            width: drawnW,
-            height: drawnH,
-            rotate: degrees(90),
+            x: d.x,
+            y: d.y,
+            width: d.width,
+            height: d.height,
+            rotate: degrees(d.rotateDeg),
             opacity: 1,
           })
         } else {
-          // Preserve aspect ratio: fit inside the field box and center
+          // Preserve aspect ratio: fit inside the field box and center.
           const fitted = pngImage.scaleToFit(w, h)
-          const drawX = x + (w - fitted.width) / 2
-          const drawY = y + (h - fitted.height) / 2
+          const offsetU = (w - fitted.width) / 2
+          const offsetV = (h - fitted.height) / 2
+          const d = composeDraw(frame, offsetU, offsetV, fitted.width, fitted.height, 0)
           page.drawImage(pngImage, {
-            x: drawX,
-            y: drawY,
-            width: fitted.width,
-            height: fitted.height,
+            x: d.x,
+            y: d.y,
+            width: d.width,
+            height: d.height,
+            rotate: degrees(d.rotateDeg),
             opacity: 1,
           })
         }
       } catch {
-        // If PNG embed fails, fall back to text placeholder
+        // If PNG embed fails, fall back to text placeholder.
+        const fontSize = 10
+        const d = composeDraw(frame, 2, h / 2 - fontSize * 0.6, w - 4, fontSize, 0)
         page.drawText("[Signature]", {
-          x: x + 2,
-          y: y + h / 2 - 6,
-          size: 10,
+          x: d.x,
+          y: d.y,
+          size: fontSize,
           font: helvetica,
           color: rgb(0.1, 0.1, 0.1),
+          rotate: degrees(d.rotateDeg),
         })
       }
     } else {
-      // TEXT or DATE — draw as text, vertically centered
+      // TEXT or DATE — draw as text, vertically centered.
       const fontSize = Math.max(8, Math.min(12, h * 0.5))
       const text = field.value.slice(0, 100) // safety clamp
 
+      // Local baseline: TL offset (u=2, v=h - (h-fontSize)/2 - fontSize*0.2).
+      // pdf-lib's drawText y is the baseline in the *source* coordinate; we
+      // match the prior visual by positioning the text box's TL (u=2, v=...)
+      // and using composeDraw to get pivot + rotation. We treat the text as
+      // occupying (w-4, fontSize), so the bbox TL in local coords is:
+      //   u = 2
+      //   v = (h - fontSize) / 2
+      const offsetU = 2
+      const offsetV = (h - fontSize) / 2
+      const d = composeDraw(frame, offsetU, offsetV, w - 4, fontSize, 0)
+
       page.drawText(text, {
-        x: x + 2,
-        y: y + (h - fontSize) / 2,
+        x: d.x,
+        y: d.y,
         size: fontSize,
         font: helvetica,
         color: rgb(0.05, 0.05, 0.05),
         maxWidth: w - 4,
+        rotate: degrees(d.rotateDeg),
       })
     }
   }
