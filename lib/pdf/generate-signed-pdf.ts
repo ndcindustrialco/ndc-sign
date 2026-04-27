@@ -2,6 +2,7 @@ import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib"
 import { createHash } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase"
+import { logger } from "@/lib/logger"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -302,6 +303,16 @@ export async function generateSignedPdf(
     const page = pages[pageIndex]
     const { width: pageWidth, height: pageHeight } = page.getSize()
     const pageRotation = page.getRotation().angle
+    logger.warn("[signed-pdf] field debug", {
+      documentId,
+      signerId,
+      page: field.page,
+      pageRotation,
+      pageWidth,
+      pageHeight,
+      fieldType: field.type,
+      fieldXY: { x: field.x, y: field.y, w: field.width, h: field.height },
+    })
     const frame = getBoxFrame(field, pageWidth, pageHeight, pageRotation)
     const { w, h } = frame
 
