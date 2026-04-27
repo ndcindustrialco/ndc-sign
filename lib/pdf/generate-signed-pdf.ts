@@ -130,90 +130,57 @@ type DrawParams = {
 // Compose a local sub-rect draw with the page's rotation.
 //
 // Inputs are in the *local* box frame:
-//   (u, v)   = top-left of the content sub-rect
-//   (cw, ch) = content size along local +u and +v axes, *before* any
-//              in-frame rotation
-//   localCwRot = CW rotation of the content within the local frame, around
-//                the sub-rect's TL (u, v). 0 by default; 90 when auto-rotating
-//                a landscape signature into a portrait cell.
+//   (u, v)         = visual top-left of the content sub-rect
+//   (bboxW, bboxH) = visual size of the content sub-rect
+//   localCwRot     = CW rotation of the content within the local frame around
+//                    its TL. 0 by default; 90 when auto-rotating a landscape
+//                    signature into a portrait cell. (Currently unused — kept
+//                    for API symmetry with future content rotation needs.)
 //
-// Output is pdf-lib drawImage/drawText params such that the content appears at
-// the intended place/orientation after the PDF viewer re-applies /Rotate.
+// pdf-lib draws into the page's *unrotated* PDF space; the viewer then applies
+// the page's `/Rotate` (CW) on top. So to make the content appear upright in
+// the visual frame, we must counter-rotate by `pageRotation` CCW (equivalent
+// to pdf-lib's `rotate: degrees(pageRotation)`, since pdf-lib rotates CCW).
 //
-// Derivation:
-//   - Local CW rotation = CCW rotation in PDF space (local v-axis points down,
-//     PDF y-axis points up), so PDF-space CCW rotation θ = localCwRot - pageRot.
-//   - pdf-lib's `rotate: degrees(θ)` rotates the source rect CCW by θ around
-//     pivot (x, y). For axis-aligned multiples of 90°, the axis-aligned bbox
-//     of the rotated rect has a specific corner that coincides with pivot:
-//         θ =   0 → pivot = bbox BL
-//         θ =  90 → pivot = bbox BR
-//         θ = 180 → pivot = bbox TR
-//         θ = 270 → pivot = bbox TL
-//   - The PDF-space bbox itself is the axis-aligned bbox of the local sub-rect
-//     mapped through the frame (since the frame's u/v axes are axis-aligned in
-//     PDF space for multiples of 90°).
-// Caller convention: (u, v, bboxW, bboxH) is the *final* bounding box of the
-// content in local space — already reflecting any in-box rotation. localCwRot
-// only tells us whether the source image is oriented along the bbox or rotated
-// 90° CW within it.
+// pdf-lib applies operations as: translate(x,y) → rotate(θ) → scale(w,h) →
+// drawObject (unit square in image space, with image (0,1) at visual TL of
+// the raster). Solving for the (x,y) such that image (0,1) lands at the
+// visual TL in PDF space:
 //
-// Internally:
-//   - PDF-space bbox = axis-aligned image of the local bbox under the frame.
-//   - pdf-lib draws at (width_src, height_src) and rotates CCW by rotateDeg
-//     around a pivot corner of the PDF bbox:
-//         rotateDeg   pivot       (width_src, height_src)
-//             0       BL          (bboxW, bboxH)
-//            90       BR          (bboxH, bboxW)
-//           180       TR          (bboxW, bboxH)
-//           270       TL          (bboxH, bboxW)
+//   θ =   0 → (x, y) = (visTL_x,         visTL_y - bboxH)
+//   θ =  90 → (x, y) = (visTL_x + bboxH, visTL_y)
+//   θ = 180 → (x, y) = (visTL_x,         visTL_y + bboxH)
+//   θ = 270 → (x, y) = (visTL_x - bboxH, visTL_y)
+//
+// `width` and `height` are always the visual dimensions (bboxW, bboxH). The
+// content's `localCwRot` would compose with pageRotation here if non-zero.
 function composeDraw(
   frame: BoxFrame,
   u: number, v: number,
   bboxW: number, bboxH: number,
-  localCwRot: 0 | 90 = 0
+  _localCwRot: 0 | 90 = 0
 ): DrawParams {
-  const raw = localCwRot - frame.pageRotation
-  const rotateDeg = (((raw % 360) + 360) % 360) as 0 | 90 | 180 | 270
+  const rotateDeg = frame.pageRotation as 0 | 90 | 180 | 270
+  const visTL = localPoint(frame, u, v)
 
-  // PDF-space axis-aligned bbox of the local sub-rect.
-  const corners = [
-    localPoint(frame, u, v),
-    localPoint(frame, u + bboxW, v),
-    localPoint(frame, u, v + bboxH),
-    localPoint(frame, u + bboxW, v + bboxH),
-  ]
-  const xs = corners.map((p) => p.x)
-  const ys = corners.map((p) => p.y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-
-  let pivotX: number
-  let pivotY: number
-  let width: number
-  let height: number
+  let x: number
+  let y: number
   switch (rotateDeg) {
     case 0:
-      pivotX = minX; pivotY = minY
-      width = maxX - minX; height = maxY - minY
+      x = visTL.x;         y = visTL.y - bboxH
       break
     case 90:
-      pivotX = maxX; pivotY = minY
-      width = maxY - minY; height = maxX - minX
+      x = visTL.x + bboxH; y = visTL.y
       break
     case 180:
-      pivotX = maxX; pivotY = maxY
-      width = maxX - minX; height = maxY - minY
+      x = visTL.x;         y = visTL.y + bboxH
       break
     case 270:
-      pivotX = minX; pivotY = maxY
-      width = maxY - minY; height = maxX - minX
+      x = visTL.x - bboxH; y = visTL.y
       break
   }
 
-  return { x: pivotX, y: pivotY, width, height, rotateDeg }
+  return { x, y, width: bboxW, height: bboxH, rotateDeg }
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +297,21 @@ export async function generateSignedPdf(
         const offsetU = (w - fitted.width) / 2
         const offsetV = (h - fitted.height) / 2
         const d = composeDraw(frame, offsetU, offsetV, fitted.width, fitted.height, 0)
+        logger.warn("[signed-pdf] embed image", {
+          documentId,
+          signerId,
+          fieldId: field.id,
+          pageRotation,
+          frameW: w,
+          frameH: h,
+          imgW: pngImage.width,
+          imgH: pngImage.height,
+          drawX: d.x,
+          drawY: d.y,
+          drawW: d.width,
+          drawH: d.height,
+          rotateDeg: d.rotateDeg,
+        })
         page.drawImage(pngImage, {
           x: d.x,
           y: d.y,
