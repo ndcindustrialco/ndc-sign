@@ -314,51 +314,19 @@ export async function generateSignedPdf(
       try {
         const pngImage = await pdfDoc.embedPng(pngBytes)
 
-        // Auto-rotate 90° when image orientation doesn't match the field box
-        // (e.g. landscape signature into a portrait cell in a table).
-        const imgLandscape = pngImage.width >= pngImage.height
-        const boxLandscape = w >= h
-        const rotate = imgLandscape !== boxLandscape
-
-        if (rotate) {
-          // Rotated 90° in-box: the bbox inside the field cell has swapped
-          // aspect relative to the source image. Find the largest bbox that
-          // fits inside (w, h) while the rotated image preserves its aspect.
-          const imgAspect = pngImage.width / pngImage.height
-          // After CW 90°, bboxW corresponds to the image's short side (its
-          // height-after-rotation) and bboxH to its long side.
-          let bboxW = h
-          let bboxH = h * imgAspect
-          if (bboxH > w) {
-            bboxH = w
-            bboxW = w / imgAspect
-          }
-          const offsetU = (w - bboxW) / 2
-          const offsetV = (h - bboxH) / 2
-          const d = composeDraw(frame, offsetU, offsetV, bboxW, bboxH, 90)
-          page.drawImage(pngImage, {
-            x: d.x,
-            y: d.y,
-            width: d.width,
-            height: d.height,
-            rotate: degrees(d.rotateDeg),
-            opacity: 1,
-          })
-        } else {
-          // Preserve aspect ratio: fit inside the field box and center.
-          const fitted = pngImage.scaleToFit(w, h)
-          const offsetU = (w - fitted.width) / 2
-          const offsetV = (h - fitted.height) / 2
-          const d = composeDraw(frame, offsetU, offsetV, fitted.width, fitted.height, 0)
-          page.drawImage(pngImage, {
-            x: d.x,
-            y: d.y,
-            width: d.width,
-            height: d.height,
-            rotate: degrees(d.rotateDeg),
-            opacity: 1,
-          })
-        }
+        // Preserve aspect ratio: fit inside the field box and center.
+        const fitted = pngImage.scaleToFit(w, h)
+        const offsetU = (w - fitted.width) / 2
+        const offsetV = (h - fitted.height) / 2
+        const d = composeDraw(frame, offsetU, offsetV, fitted.width, fitted.height, 0)
+        page.drawImage(pngImage, {
+          x: d.x,
+          y: d.y,
+          width: d.width,
+          height: d.height,
+          rotate: degrees(d.rotateDeg),
+          opacity: 1,
+        })
       } catch {
         // If PNG embed fails, fall back to text placeholder.
         const fontSize = 10
