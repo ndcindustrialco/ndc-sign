@@ -49,13 +49,15 @@ export default function DocumentEditorClient({
  const [selfSignError, setSelfSignError] = useState<string | null>(null)
  const [isSelfSigning, startSelfSign] = useTransition()
 
- function handleAddSigner() {
- if (signers.length >= SIGNER_COLORS.length) return
+ function handleAddSigner(): string | null {
+ if (signers.length >= SIGNER_COLORS.length) return null
  const idx = signers.length
+ const newId = `placeholder-${Date.now()}`
  setSigners((prev) => [
  ...prev,
- { id: `placeholder-${Date.now()}`, name: PARTY_LABELS[idx] ?? `Party ${idx + 1}` },
+ { id: newId, name: PARTY_LABELS[idx] ?? `Party ${idx + 1}` },
  ])
+ return newId
  }
 
  function handleRemoveSigner(id: string) {

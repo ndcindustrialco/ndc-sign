@@ -39,6 +39,15 @@ export default async function DocumentDetailPage({ params }: Props) {
     signedPdfUrl = signedData?.signedUrl ?? null
   }
 
+  // Generate signed URL for audit PDF if it exists
+  let auditPdfUrl: string | null = null
+  if (doc.auditStoragePath) {
+    const { data: auditData } = await supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .createSignedUrl(doc.auditStoragePath, 60 * 60)
+    auditPdfUrl = auditData?.signedUrl ?? null
+  }
+
   return (
     <>
       <DocumentDetailClient
@@ -46,6 +55,7 @@ export default async function DocumentDetailPage({ params }: Props) {
         auditEvents={auditEvents}
         pdfUrl={pdfUrl}
         signedPdfUrl={signedPdfUrl}
+        auditPdfUrl={auditPdfUrl}
       />
     </>
   )

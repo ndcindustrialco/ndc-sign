@@ -34,7 +34,7 @@ interface PdfViewerProps {
  url: string
  initialFields: FieldItem[]
  signers?: PdfViewerSigner[]
- onAddSigner: () => void
+ onAddSigner: () => string | null
  onRemoveSigner: (id: string) => void
  selfSignMode?: boolean
 }
@@ -506,7 +506,10 @@ export default function PdfViewer({
  signers={panelSigners}
  selectedSignerId={selectedSignerId}
  onSignerChange={(id) => { setSelectedSignerId(id) }}
- onAddSigner={onAddSigner}
+ onAddSigner={() => {
+ const newId = onAddSigner()
+ if (newId) setSelectedSignerId(newId)
+ }}
  onRemoveSigner={onRemoveSigner}
  selfSignMode={selfSignMode}
  />

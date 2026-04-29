@@ -36,7 +36,7 @@ export function signingUrl(rawToken: string): string {
 
 export type TokenVerifyResult =
   | { valid: true; signerId: string; tokenId: string }
-  | { valid: false; reason: "not_found" | "expired" | "used" }
+  | { valid: false; reason: "not_found" | "expired" | "used"; signerId?: string }
 
 import { prisma } from "@/lib/prisma"
 
@@ -56,8 +56,8 @@ export async function verifySignerToken(
   })
 
   if (!record) return { valid: false, reason: "not_found" }
-  if (record.expiresAt < new Date()) return { valid: false, reason: "expired" }
-  if (record.usedAt) return { valid: false, reason: "used" }
+  if (record.expiresAt < new Date()) return { valid: false, reason: "expired", signerId: record.signerId }
+  if (record.usedAt) return { valid: false, reason: "used", signerId: record.signerId }
 
   return { valid: true, signerId: record.signerId, tokenId: record.id }
 }

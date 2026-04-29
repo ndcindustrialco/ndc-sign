@@ -18,8 +18,6 @@ interface SigningFormProps {
  fields: SigningField[]
  savedSignature: string | null
  isApprover?: boolean
- ip?: string
- userAgent?: string
 }
 
 export default function SigningForm({
@@ -32,8 +30,6 @@ export default function SigningForm({
  fields,
  savedSignature,
  isApprover = false,
- ip,
- userAgent,
 }: SigningFormProps) {
  const router = useRouter()
  const [values, setValues] = useState<Record<string, string | null>>({})
@@ -104,8 +100,6 @@ export default function SigningForm({
  signerId,
  tokenId,
  values: payload,
- ip,
- userAgent,
  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
  })
  if (!result.ok) {

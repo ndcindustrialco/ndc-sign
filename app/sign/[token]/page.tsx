@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase";
 import { getSavedSignature } from "@/lib/actions/saved-signature";
 import { openedSignature } from "@/lib/actions/submission";
+import { createAuditEvent } from "@/lib/actions/audit";
 import SigningForm from "@/components/signing/signing-form";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,33 @@ const REASON_MESSAGE: Record<string, string> = {
 export default async function SignPage({ params }: PageProps) {
   const { token: rawToken } = await params;
 
+  const reqHeaders = await headers();
+  const ip =
+    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    reqHeaders.get("x-real-ip") ??
+    undefined;
+  const userAgent = reqHeaders.get("user-agent") ?? undefined;
+
   const verify = await verifySignerToken(rawToken);
 
   if (!verify.valid) {
+    // Log failed token attempt when we can trace it to a signer (expired/used)
+    if (verify.signerId) {
+      const signer = await prisma.signer.findUnique({
+        where: { id: verify.signerId },
+        select: { documentId: true, email: true, name: true },
+      });
+      if (signer) {
+        createAuditEvent({
+          documentId: signer.documentId,
+          type: "TOKEN_FAILED",
+          actorEmail: signer.email,
+          actorName: signer.name,
+          meta: { reason: verify.reason, ip: ip ?? null, userAgent: userAgent ?? null },
+        }).catch(() => {});
+      }
+    }
+
     return (
       <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
         <div className="w-full max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
@@ -93,14 +118,6 @@ export default async function SignPage({ params }: PageProps) {
     );
   }
 
-  // Capture request metadata for audit
-  const reqHeaders = await headers();
-  const ip =
-    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    reqHeaders.get("x-real-ip") ??
-    undefined;
-  const userAgent = reqHeaders.get("user-agent") ?? undefined;
-
   // Mark OPENED + emit audit event
   await openedSignature(signer.id, { ip, userAgent });
 
@@ -149,8 +166,6 @@ export default async function SignPage({ params }: PageProps) {
           fields={signer.document.fields}
           savedSignature={savedSigResult.ok ? savedSigResult.data : null}
           isApprover={signer.document.fields.length === 0}
-          ip={ip}
-          userAgent={userAgent}
         />
       </main>
     </div>

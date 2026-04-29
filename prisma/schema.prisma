@@ -87,6 +87,7 @@ model Document {
   signers           Signer[]
   auditEvents       AuditEvent[]
   signedStoragePath String?
+  auditStoragePath  String?
   documentHash      String?
   signedAt          DateTime?
   voidedAt          DateTime?
@@ -243,6 +244,7 @@ enum AuditEventType {
   SIGNER_SIGNED
   SIGNER_DECLINED
   SIGNER_REINVITED
+  TOKEN_FAILED
 }
 
 model AuditEvent {

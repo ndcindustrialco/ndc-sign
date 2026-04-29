@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { generateSignedPdf } from "@/lib/pdf/generate-signed-pdf"
 import { generateAuditPdf } from "@/lib/pdf/generate-audit-pdf"
@@ -11,6 +12,16 @@ import { getOwnerAccessToken } from "@/lib/email/get-owner-token"
 import { uploadTempPdf } from "@/lib/email/pdf-storage"
 import { logger } from "@/lib/logger"
 import type { ActionResult } from "./document"
+
+async function getRequestMeta(): Promise<{ ip: string | null; userAgent: string | null }> {
+  const h = await headers()
+  const ip =
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    h.get("x-real-ip") ??
+    null
+  const userAgent = h.get("user-agent") ?? null
+  return { ip, userAgent }
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
@@ -27,8 +38,6 @@ const SubmitSchema = z.object({
   signerId: z.string().min(1),
   tokenId: z.string().min(1),
   values: z.array(FieldValueSchema),
-  ip: z.string().max(100).optional(),
-  userAgent: z.string().max(500).optional(),
   timezone: z.string().max(100).optional(),
 })
 
@@ -126,7 +135,8 @@ export async function submitSignature(
     return { ok: false, error: validated.error.issues[0]?.message ?? "Invalid input" }
   }
 
-  const { signerId, tokenId, values, ip, userAgent, timezone } = validated.data
+  const { signerId, tokenId, values, timezone } = validated.data
+  const { ip, userAgent } = await getRequestMeta()
 
   await consumeSignerToken(tokenId)
 
@@ -246,58 +256,6 @@ export async function submitSignature(
   const now = new Date()
   const userAccessToken = await getOwnerAccessToken(signer.document.uploadedBy)
 
-  // Upload PDFs to temp storage for email attachments (avoids Inngest 256KB limit)
-  let signedPdfPath: string | undefined
-  let notificationAuditPdfPath: string | undefined
-  if (signedPdfBytes) {
-    try {
-      signedPdfPath = await uploadTempPdf(signedPdfBytes, "signed")
-      const doc = await prisma.document.findUnique({
-        where: { id: signer.documentId },
-        select: {
-          documentHash: true,
-          signers: { select: { name: true, email: true, status: true }, orderBy: { order: "asc" } },
-        },
-      })
-      if (doc) {
-        const { createHash } = await import("crypto")
-        const signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
-        const auditBytes = await generateAuditPdf({
-          documentName,
-          documentHash: doc.documentHash,
-          signedDocumentHash,
-          ownerEmail,
-          ownerName,
-          signers: doc.signers,
-          auditEvents: await getAuditEvents(signer.documentId),
-          completedAt: now,
-        })
-        if (auditBytes) {
-          notificationAuditPdfPath = await uploadTempPdf(auditBytes, "audit")
-        }
-      }
-    } catch (err) {
-      console.error("[submitSignature] PDF upload for signed-notification failed:", err)
-    }
-  }
-
-  // Notify owner via Inngest (with retry)
-  await inngest.send({
-    name: "email/signed-notification",
-    data: {
-      userAccessToken: userAccessToken ?? "",
-      ownerEmail,
-      ownerName,
-      signerName: signer.name,
-      signerEmail: signer.email,
-      documentName,
-      documentUrl,
-      signedAt: now,
-      signedPdfPath,
-      auditPdfPath: notificationAuditPdfPath,
-    },
-  })
-
   await triggerNextSigningGroup(signer.documentId, signer.signingOrder)
 
   const allRequiredSigners = await prisma.signer.findMany({
@@ -306,63 +264,8 @@ export async function submitSignature(
   })
   const allSigned = allRequiredSigners.every((s) => s.status === "SIGNED")
 
-  if (!allSigned && signedPdfBytes) {
-    // Interim: send signer copy while document is still in progress
-    try {
-      let interimSignedPath = signedPdfPath
-      let interimAuditPath = notificationAuditPdfPath
-
-      // Re-upload if paths were not created above
-      if (!interimSignedPath) {
-        interimSignedPath = await uploadTempPdf(signedPdfBytes, "signed-interim")
-      }
-      if (!interimAuditPath) {
-        const interimDoc = await prisma.document.findUnique({
-          where: { id: signer.documentId },
-          select: {
-            documentHash: true,
-            signers: { select: { name: true, email: true, status: true }, orderBy: { order: "asc" } },
-          },
-        })
-        if (interimDoc) {
-          const { createHash } = await import("crypto")
-          const signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
-          const auditBytes = await generateAuditPdf({
-            documentName,
-            documentHash: interimDoc.documentHash,
-            signedDocumentHash,
-            ownerEmail,
-            ownerName,
-            signers: interimDoc.signers,
-            auditEvents: await getAuditEvents(signer.documentId),
-            completedAt: now,
-          })
-          if (auditBytes) {
-            interimAuditPath = await uploadTempPdf(auditBytes, "audit-interim")
-          }
-        }
-      }
-
-      await inngest.send({
-        name: "email/signer-copy",
-        data: {
-          userAccessToken: userAccessToken ?? "",
-          ownerEmail,
-          ownerName,
-          signerName: signer.name,
-          signerEmail: signer.email,
-          documentName,
-          signedAt: now,
-          signedPdfPath: interimSignedPath,
-          auditPdfPath: interimAuditPath,
-        },
-      })
-    } catch (err) {
-      console.error("[submitSignature] Interim signer copy failed:", err)
-    }
-  }
-
   if (allSigned && allRequiredSigners.length > 0) {
+    // All signers done — complete the document and send one round of notifications
     await prisma.document.update({
       where: { id: signer.documentId },
       data: { status: "COMPLETED" },
@@ -388,21 +291,38 @@ export async function submitSignature(
         const auditEvents = await getAuditEvents(signer.documentId)
 
         let signedDocumentHash: string | null = null
+        let auditPdfBytes: Uint8Array | null = null
         if (signedPdfBytes) {
           const { createHash } = await import("crypto")
           signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
+          auditPdfBytes = await generateAuditPdf({
+            documentName,
+            documentHash: completedDoc.documentHash,
+            signedDocumentHash,
+            ownerEmail,
+            ownerName,
+            signers: completedDoc.signers,
+            auditEvents,
+            completedAt: now,
+          })
         }
 
-        const auditPdfBytes = await generateAuditPdf({
-          documentName,
-          documentHash: completedDoc.documentHash,
-          signedDocumentHash,
-          ownerEmail,
-          ownerName,
-          signers: completedDoc.signers,
-          auditEvents,
-          completedAt: now,
-        })
+        // Persist audit PDF to permanent storage so it can be viewed on the document detail page
+        if (auditPdfBytes) {
+          try {
+            const { supabaseAdmin, STORAGE_BUCKET } = await import("@/lib/supabase")
+            const auditPath = `${completedDoc.user.email.replace(/[^a-z0-9]/gi, "_")}/audit-${signer.documentId}.pdf`
+            await supabaseAdmin.storage
+              .from(STORAGE_BUCKET)
+              .upload(auditPath, Buffer.from(auditPdfBytes), { contentType: "application/pdf", upsert: true })
+            await prisma.document.update({
+              where: { id: signer.documentId },
+              data: { auditStoragePath: auditPath },
+            })
+          } catch (err) {
+            console.error("[submitSignature] audit PDF permanent upload failed:", err)
+          }
+        }
 
         // Upload to temp storage (avoids Inngest 256KB limit)
         let completedSignedPath: string | undefined
@@ -414,7 +334,7 @@ export async function submitSignature(
           completedAuditPath = await uploadTempPdf(auditPdfBytes, "completed-audit")
         }
 
-        // Notify owner via Inngest (with retry)
+        // Notify owner — all signed
         await inngest.send({
           name: "email/completed-notification",
           data: {
@@ -430,7 +350,7 @@ export async function submitSignature(
           },
         })
 
-        // Send copy to every signer via Inngest (with retry)
+        // Send final copy to every signer
         // Each event must have its own temp path — resolvePdfPaths deletes the file after
         // downloading, so sharing a path across events means only the first event gets the PDF.
         const signedSigners = completedDoc.signers.filter((s) => s.status === "SIGNED")
@@ -462,6 +382,100 @@ export async function submitSignature(
     } catch (err) {
       console.error("[submitSignature] Completed notification failed:", err)
     }
+  } else {
+    // Document still in progress — notify owner this signer is done, and send interim copy
+    let interimSignedBytes: Uint8Array | null = signedPdfBytes
+    let interimAuditBytes: Uint8Array | null = null
+
+    if (signedPdfBytes) {
+      try {
+        const doc = await prisma.document.findUnique({
+          where: { id: signer.documentId },
+          select: {
+            documentHash: true,
+            signers: { select: { name: true, email: true, status: true }, orderBy: { order: "asc" } },
+          },
+        })
+        if (doc) {
+          const { createHash } = await import("crypto")
+          const signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
+          interimAuditBytes = await generateAuditPdf({
+            documentName,
+            documentHash: doc.documentHash,
+            signedDocumentHash,
+            ownerEmail,
+            ownerName,
+            signers: doc.signers,
+            auditEvents: await getAuditEvents(signer.documentId),
+            completedAt: now,
+          })
+        }
+      } catch (err) {
+        console.error("[submitSignature] Interim PDF generation failed:", err)
+        interimSignedBytes = null
+      }
+    }
+
+    // Each email event needs its own temp path — resolvePdfPaths deletes after download
+    let ownerSignedPath: string | undefined
+    let ownerAuditPath: string | undefined
+    let signerSignedPath: string | undefined
+    let signerAuditPath: string | undefined
+    if (interimSignedBytes) {
+      try {
+        ownerSignedPath = await uploadTempPdf(interimSignedBytes, "signed-interim-owner")
+        signerSignedPath = await uploadTempPdf(interimSignedBytes, "signed-interim-signer")
+      } catch (err) {
+        console.error("[submitSignature] Interim signed PDF upload failed:", err)
+      }
+    }
+    if (interimAuditBytes) {
+      try {
+        ownerAuditPath = await uploadTempPdf(interimAuditBytes, "audit-interim-owner")
+        signerAuditPath = await uploadTempPdf(interimAuditBytes, "audit-interim-signer")
+      } catch (err) {
+        console.error("[submitSignature] Interim audit PDF upload failed:", err)
+      }
+    }
+
+    // Notify owner that this signer completed
+    await inngest.send({
+      name: "email/signed-notification",
+      data: {
+        userAccessToken: userAccessToken ?? "",
+        ownerEmail,
+        ownerName,
+        signerName: signer.name,
+        signerEmail: signer.email,
+        documentName,
+        documentUrl,
+        signedAt: now,
+        signedPdfPath: ownerSignedPath,
+        auditPdfPath: ownerAuditPath,
+      },
+    })
+
+    // Send interim copy to this signer
+    if (interimSignedBytes) {
+      try {
+        await inngest.send({
+          name: "email/signer-copy",
+          data: {
+            userAccessToken: userAccessToken ?? "",
+            ownerEmail,
+            ownerName,
+            signerName: signer.name,
+            signerEmail: signer.email,
+            documentName,
+            signedAt: now,
+            signedPdfPath: signerSignedPath,
+            auditPdfPath: signerAuditPath,
+          },
+        })
+      } catch (err) {
+        console.error("[submitSignature] Interim signer copy failed:", err)
+      }
+    }
   }
 
   return { ok: true, data: undefined }
@@ -486,6 +500,7 @@ export async function declineSignature(input: {
   }
 
   const { signerId, reason } = validated.data
+  const { ip, userAgent } = await getRequestMeta()
 
   const signer = await prisma.signer.findUnique({
     where: { id: signerId },
@@ -525,7 +540,13 @@ export async function declineSignature(input: {
     type: "SIGNER_DECLINED",
     actorEmail: signer.email,
     actorName: signer.name,
-    meta: { reason, signerEmail: signer.email, signerName: signer.name },
+    meta: {
+      reason,
+      signerEmail: signer.email,
+      signerName: signer.name,
+      ip: ip ?? null,
+      userAgent: userAgent ?? null,
+    },
   })
 
   const declineToken = await getOwnerAccessToken(signer.document.uploadedBy)

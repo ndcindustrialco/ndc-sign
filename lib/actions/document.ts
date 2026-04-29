@@ -281,6 +281,7 @@ export type DocumentDetail = {
   status: string
   storagePath: string
   signedStoragePath: string | null
+  auditStoragePath: string | null
   createdAt: Date
   updatedAt: Date
   voidedAt: Date | null
@@ -317,6 +318,7 @@ export async function getDocument(
       status: true,
       storagePath: true,
       signedStoragePath: true,
+      auditStoragePath: true,
       createdAt: true,
       updatedAt: true,
       voidedAt: true,
