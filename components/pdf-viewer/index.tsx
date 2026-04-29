@@ -36,6 +36,7 @@ interface PdfViewerProps {
  signers?: PdfViewerSigner[]
  onAddSigner: () => void
  onRemoveSigner: (id: string) => void
+ selfSignMode?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +222,7 @@ export default function PdfViewer({
  signers = [],
  onAddSigner,
  onRemoveSigner,
+ selfSignMode = false,
 }: PdfViewerProps) {
  const containerRef = useRef<HTMLDivElement>(null)
  const [fields, setFields] = useState<FieldItem[]>(initialFields)
@@ -290,8 +292,9 @@ export default function PdfViewer({
  const fx = Math.max(0, Math.min(100 - width, rect.x))
  const fy = Math.max(0, Math.min(100 - height, rect.y))
 
- const isPlaceholder = selectedSignerId?.startsWith("placeholder-") ?? false
- const dbSignerId = isPlaceholder ? undefined : (selectedSignerId ?? undefined)
+ // A signer ID is virtual (not a real DB cuid) if it starts with "placeholder-" or equals "self"
+ const isPlaceholder = !selectedSignerId || selectedSignerId.startsWith("placeholder-") || selectedSignerId === "self"
+ const dbSignerId = isPlaceholder ? undefined : selectedSignerId
  const displaySignerId = selectedSignerId ?? null
  const partyIndex = isPlaceholder
   ? signers.findIndex((s) => s.id === selectedSignerId)
@@ -355,8 +358,8 @@ export default function PdfViewer({
  const nx = Math.max(0, Math.min(100 - width, source.x + OFFSET))
  const ny = Math.max(0, Math.min(100 - height, source.y + OFFSET))
 
- const isPlaceholder = source.signerId?.startsWith("placeholder-") ?? false
- const dbSignerId = source.signerId && !isPlaceholder ? source.signerId : undefined
+ const isPlaceholder = !source.signerId || source.signerId.startsWith("placeholder-") || source.signerId === "self"
+ const dbSignerId = isPlaceholder ? undefined : (source.signerId ?? undefined)
  const displaySignerId = source.signerId
  const srcPartyIndex = isPlaceholder
   ? signers.findIndex((s) => s.id === source.signerId)
@@ -505,6 +508,7 @@ export default function PdfViewer({
  onSignerChange={(id) => { setSelectedSignerId(id) }}
  onAddSigner={onAddSigner}
  onRemoveSigner={onRemoveSigner}
+ selfSignMode={selfSignMode}
  />
  )
 

@@ -17,6 +17,7 @@ interface FieldPanelProps {
  onSignerChange: (id: string | null) => void
  onAddSigner: () => void
  onRemoveSigner: (id: string) => void
+ selfSignMode?: boolean
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────
@@ -152,6 +153,7 @@ export default function FieldPanel({
  onSignerChange,
  onAddSigner,
  onRemoveSigner,
+ selfSignMode = false,
 }: FieldPanelProps) {
  const [partyOpen, setPartyOpen] = useState(false)
 
@@ -171,11 +173,11 @@ export default function FieldPanel({
  {/* ── Party switcher + field grid ── */}
  {signers.length > 0 && (
  <>
- {/* Active party header — click to open party picker */}
+ {/* Active party header */}
  <div className="relative border-b border-zinc-100">
  <button
- onClick={() => setPartyOpen((v) => !v)}
- className="flex w-full items-center gap-2.5 px-3 py-3 text-left transition hover:bg-zinc-50"
+ onClick={() => !selfSignMode && setPartyOpen((v) => !v)}
+ className={`flex w-full items-center gap-2.5 px-3 py-3 text-left transition ${selfSignMode ? "cursor-default" : "hover:bg-zinc-50"}`}
  >
  {activeSigner ? (
  <>
@@ -184,13 +186,13 @@ export default function FieldPanel({
  style={{ background: activeSigner.color }}
  />
  <span className="flex-1 truncate text-sm font-semibold text-zinc-900">
- {PARTY_LABEL[activeIdx] ?? activeSigner.name}
+ {selfSignMode ? "ตัวเอง Myself" : (PARTY_LABEL[activeIdx] ?? activeSigner.name)}
  </span>
  </>
  ) : (
  <span className="flex-1 text-sm text-zinc-400">เลือกฝ่าย Select party</span>
  )}
- {/* Plus / chevron icon */}
+ {!selfSignMode && (
  <span className="flex h-5 w-5 items-center justify-center rounded text-zinc-400">
  <svg
  className={`h-3.5 w-3.5 transition-transform ${partyOpen ? "rotate-180" : ""}`}
@@ -199,6 +201,7 @@ export default function FieldPanel({
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
  </svg>
  </span>
+ )}
  </button>
 
  {/* Party dropdown */}
@@ -232,7 +235,7 @@ export default function FieldPanel({
  </svg>
  )}
  </button>
- {canRemove && (
+ {canRemove && !selfSignMode && (
  <button
  onClick={(e) => { e.stopPropagation(); setPartyOpen(false); onRemoveSigner(s.id) }}
  className={`mr-2 rounded p-1 transition ${
@@ -251,7 +254,8 @@ export default function FieldPanel({
  )
  })}
 
- {/* Add new party */}
+ {/* Add new party — hidden in self-sign mode */}
+ {!selfSignMode && (
  <button
  onClick={() => { setPartyOpen(false); onAddSigner() }}
  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-zinc-400 transition hover:bg-zinc-50"
@@ -259,6 +263,7 @@ export default function FieldPanel({
  <IconAddPerson />
  <span>เพิ่ม {PARTY_LABEL[signers.length] ?? `ฝ่ายที่ ${signers.length + 1}`}</span>
  </button>
+ )}
  </div>
  )}
  </div>

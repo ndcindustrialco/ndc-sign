@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib"
+import { PDFDocument, rgb, StandardFonts, degrees, LineCapStyle } from "pdf-lib"
 import { createHash } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase"
@@ -334,19 +334,22 @@ export async function generateSignedPdf(
         })
       }
     } else if (field.type === "CHECKBOX") {
-      // Draw a visual checkmark centered in the field box.
-      const fontSize = Math.max(8, Math.min(h * 0.75, 20))
-      const offsetU = (w - fontSize * 0.6) / 2
-      const offsetV = (h - fontSize) / 2
-      const d = composeDraw(frame, offsetU, offsetV, fontSize, fontSize, 0)
-      page.drawText("✓", {
-        x: d.x,
-        y: d.y,
-        size: fontSize,
-        font: helvetica,
-        color: rgb(0.05, 0.05, 0.05),
-        rotate: degrees(d.rotateDeg),
-      })
+      // Draw a vector checkmark (two lines: down-left leg + up-right leg).
+      // Helvetica doesn't support ✓ (U+2713), so we draw it as raw PDF ops.
+      const size = Math.max(8, Math.min(h * 0.75, 20))
+      const offsetU = (w - size) / 2
+      const offsetV = (h - size) / 2
+      // Checkmark control points in local (u,v) frame, v↓:
+      //   start  → mid  → end
+      //   (0.1, 0.55) → (0.35, 0.85) → (0.9, 0.2)  (as fraction of size)
+      const pts = [
+        localPoint(frame, offsetU + size * 0.1,  offsetV + size * 0.55),
+        localPoint(frame, offsetU + size * 0.35, offsetV + size * 0.85),
+        localPoint(frame, offsetU + size * 0.9,  offsetV + size * 0.2),
+      ] as const
+      const strokeW = Math.max(1, size * 0.1)
+      page.drawLine({ start: { x: pts[0].x, y: pts[0].y }, end: { x: pts[1].x, y: pts[1].y }, thickness: strokeW, color: rgb(0.05, 0.05, 0.05), lineCap: LineCapStyle.Round })
+      page.drawLine({ start: { x: pts[1].x, y: pts[1].y }, end: { x: pts[2].x, y: pts[2].y }, thickness: strokeW, color: rgb(0.05, 0.05, 0.05), lineCap: LineCapStyle.Round })
     } else if (field.type === "FILE") {
       // Draw the filename (stored as JSON prefix before the base64 payload).
       const fileName = field.value.startsWith("file:")
