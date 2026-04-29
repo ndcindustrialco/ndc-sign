@@ -17,6 +17,7 @@ interface SigningFormProps {
  pdfUrl: string
  fields: SigningField[]
  savedSignature: string | null
+ isApprover?: boolean
  ip?: string
  userAgent?: string
 }
@@ -30,6 +31,7 @@ export default function SigningForm({
  pdfUrl,
  fields,
  savedSignature,
+ isApprover = false,
  ip,
  userAgent,
 }: SigningFormProps) {
@@ -152,10 +154,20 @@ export default function SigningForm({
  >
  {/* Signer info */}
  <div className="rounded-xl bg-white p-4" style={{ border: "1px solid var(--border, #E5E7EB)" }}>
- <p className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>ลงนามในฐานะ Signing as</p>
+ <p className="text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>
+  {isApprover ? "อนุมัติในฐานะ Approving as" : "ลงนามในฐานะ Signing as"}
+ </p>
  <p className="font-semibold" style={{ color: "var(--foreground, #212529)" }}>{signerName}</p>
  <p className="mt-0.5 text-xs" style={{ color: "var(--accent, #ADB5BD)" }}>{documentName}</p>
  </div>
+
+ {/* Approver instruction */}
+ {isApprover && (
+ <div className="rounded-xl bg-blue-50 p-4" style={{ border: "1px solid #BFDBFE" }}>
+  <p className="text-sm font-medium text-blue-800">กรุณาตรวจสอบเอกสารก่อนอนุมัติ</p>
+  <p className="mt-0.5 text-xs text-blue-600">Please review the document before approving.</p>
+ </div>
+ )}
 
  {/* Progress */}
  {fields.length > 0 && (
@@ -175,12 +187,7 @@ export default function SigningForm({
 
  {/* Field inputs */}
  <div ref={sidebarRef} className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
- {fields.length === 0 ? (
- <p className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-400">
- ไม่มีฟิลด์ให้กรอก No fields to fill in.
- </p>
- ) : (
- fields.map((field) => (
+ {fields.length > 0 && fields.map((field) => (
  <div key={field.id} data-field-id={field.id} onClick={() => setActiveFieldId(field.id)}>
  <FieldInput
  fieldId={field.id}
@@ -196,8 +203,7 @@ export default function SigningForm({
  onSaveChange={field.type === "SIGNATURE" ? setShouldSaveSignature : undefined}
  />
  </div>
- ))
- )}
+ ))}
  </div>
 
  {submitError && (
@@ -212,7 +218,7 @@ export default function SigningForm({
  className="rounded-xl py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- {isPending ? "กำลังส่ง…" : "ส่งและลงนาม Submit & Sign"}
+ {isPending ? "กำลังส่ง…" : isApprover ? "อนุมัติ Approve" : "ส่งและลงนาม Submit & Sign"}
  </button>
 
  <button
@@ -222,7 +228,7 @@ export default function SigningForm({
  className="rounded-xl py-2.5 text-sm font-medium transition-colors hover:bg-red-50 disabled:opacity-40"
  style={{ border: "1px solid var(--border, #E5E7EB)", color: "var(--accent, #ADB5BD)" }}
  >
- ปฏิเสธลงนาม Decline to sign
+ {isApprover ? "ปฏิเสธ Reject" : "ปฏิเสธลงนาม Decline to sign"}
  </button>
  </div>
 
@@ -267,7 +273,7 @@ export default function SigningForm({
  className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
  style={{ background: "var(--primary, #0F1059)" }}
  >
- {isPending ? "…" : "ส่ง Submit"}
+ {isPending ? "…" : isApprover ? "อนุมัติ" : "ส่ง Submit"}
  </button>
  </div>
 

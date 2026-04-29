@@ -25,7 +25,7 @@ const FieldValueSchema = z.object({
 const SubmitSchema = z.object({
   signerId: z.string().min(1),
   tokenId: z.string().min(1),
-  values: z.array(FieldValueSchema).min(1),
+  values: z.array(FieldValueSchema),
   ip: z.string().max(100).optional(),
   userAgent: z.string().max(500).optional(),
   timezone: z.string().max(100).optional(),

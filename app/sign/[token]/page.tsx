@@ -161,6 +161,7 @@ export default async function SignPage({ params }: PageProps) {
           pdfUrl={urlData.signedUrl}
           fields={signer.document.fields}
           savedSignature={savedSigResult.ok ? savedSigResult.data : null}
+          isApprover={signer.document.fields.length === 0}
           ip={ip}
           userAgent={userAgent}
         />
