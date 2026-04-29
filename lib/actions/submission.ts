@@ -5,7 +5,7 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { generateSignedPdf } from "@/lib/pdf/generate-signed-pdf"
 import { generateAuditPdf } from "@/lib/pdf/generate-audit-pdf"
-import { generateToken, tokenExpiresAt, signingUrl, consumeSignerToken } from "@/lib/token"
+import { generateToken, tokenExpiresAt, signingUrl } from "@/lib/token"
 import { createAuditEvent, getAuditEvents } from "./audit"
 import { inngest } from "@/lib/inngest/client"
 import { getOwnerAccessToken } from "@/lib/email/get-owner-token"
@@ -25,13 +25,15 @@ async function getRequestMeta(): Promise<{ ip: string | null; userAgent: string 
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
+const SIGNING_ROLES: ("SIGNER")[] = ["SIGNER"]
+
 // ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
 const FieldValueSchema = z.object({
   fieldId: z.string().min(1),
-  value: z.string().min(1),
+  value: z.string(), // empty string allowed (e.g. unchecked CHECKBOX)
 })
 
 const SubmitSchema = z.object({
@@ -47,31 +49,34 @@ const SubmitSchema = z.object({
 // If so, unlock and invite the next group via Inngest (with retry).
 // ---------------------------------------------------------------------------
 
-async function triggerNextSigningGroup(documentId: string, completedSigningOrder: number) {
+async function triggerNextSigningGroup(
+  documentId: string,
+  completedSigningOrder: number
+): Promise<{ triggeredNextGroup: boolean }> {
   const currentGroup = await prisma.signer.findMany({
-    where: { documentId, signingOrder: completedSigningOrder, role: "SIGNER" },
+    where: { documentId, signingOrder: completedSigningOrder, role: { in: SIGNING_ROLES } },
     select: { status: true },
   })
 
   const groupDone = currentGroup.every(
     (s) => s.status === "SIGNED" || s.status === "DECLINED"
   )
-  if (!groupDone) return
+  if (!groupDone) return { triggeredNextGroup: false }
 
   const nextGroupResult = await prisma.signer.aggregate({
     where: {
       documentId,
       signingOrder: { gt: completedSigningOrder },
-      role: "SIGNER",
+      role: { in: SIGNING_ROLES },
       status: "WAITING",
     },
     _min: { signingOrder: true },
   })
-  const nextOrder = nextGroupResult._min.signingOrder
-  if (!nextOrder) return
+  const nextOrder = nextGroupResult._min?.signingOrder
+  if (!nextOrder) return { triggeredNextGroup: false }
 
   const nextSigners = await prisma.signer.findMany({
-    where: { documentId, signingOrder: nextOrder, role: "SIGNER", status: "WAITING" },
+    where: { documentId, signingOrder: nextOrder, role: { in: SIGNING_ROLES }, status: "WAITING" },
     select: { id: true, name: true, email: true },
   })
 
@@ -79,13 +84,24 @@ async function triggerNextSigningGroup(documentId: string, completedSigningOrder
     where: { id: documentId },
     select: { name: true, uploadedBy: true, user: { select: { name: true, email: true } } },
   })
-  if (!doc) return
+  if (!doc) return { triggeredNextGroup: false }
 
   const userAccessToken = await getOwnerAccessToken(doc.uploadedBy)
 
   for (const nextSigner of nextSigners) {
     const { raw, hash } = generateToken()
     const expiresAt = tokenExpiresAt()
+
+    const existingToken = await prisma.signerToken.findUnique({
+      where: { signerId: nextSigner.id },
+      select: { usedAt: true },
+    })
+    if (existingToken?.usedAt) {
+      logger.warn("[triggerNextSigningGroup] resetting already-consumed token for WAITING signer", {
+        documentId,
+        signerId: nextSigner.id,
+      })
+    }
 
     await prisma.$transaction([
       prisma.signer.update({
@@ -121,6 +137,8 @@ async function triggerNextSigningGroup(documentId: string, completedSigningOrder
       meta: { signerEmail: nextSigner.email, signerName: nextSigner.name, resent: false },
     }).catch(() => {})
   }
+
+  return { triggeredNextGroup: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -137,8 +155,6 @@ export async function submitSignature(
 
   const { signerId, tokenId, values, timezone } = validated.data
   const { ip, userAgent } = await getRequestMeta()
-
-  await consumeSignerToken(tokenId)
 
   const signer = await prisma.signer.findUnique({
     where: { id: signerId },
@@ -166,16 +182,19 @@ export async function submitSignature(
   if (signer.status === "DECLINED") return { ok: false, error: "This signing request was declined" }
   if (signer.status === "WAITING") return { ok: false, error: "It is not your turn to sign yet" }
 
-  const submittedFieldIds = new Set(values.map((v) => v.fieldId))
-  const missingRequired = signer.document.fields.filter(
-    (f) => f.type !== "CHECKBOX" && f.required && !submittedFieldIds.has(f.id)
-  )
+  const submittedValueMap = new Map(values.map((v) => [v.fieldId, v.value]))
+  const missingRequired = signer.document.fields.filter((f) => {
+    if (f.type === "CHECKBOX") return false
+    if (!f.required) return false
+    const val = submittedValueMap.get(f.id)
+    return val === undefined || val.trim() === ""
+  })
   if (missingRequired.length > 0) {
     return { ok: false, error: `${missingRequired.length} required field(s) are missing` }
   }
 
   const validFieldIds = new Set(signer.document.fields.map((f) => f.id))
-  const invalidField = values.find((v) => !validFieldIds.has(v.fieldId))
+  const invalidField = values.find((v) => v.value !== "" && !validFieldIds.has(v.fieldId))
   if (invalidField) return { ok: false, error: "Invalid field reference" }
 
   const fieldTypeMap = new Map(signer.document.fields.map((f) => [f.id, f.type]))
@@ -195,6 +214,13 @@ export async function submitSignature(
     if (!locked || locked.status === "SIGNED") {
       return { ok: false as const, error: "Document has already been signed" }
     }
+
+    // Consume token atomically inside the transaction so it is never burned
+    // if a subsequent step fails (signer lookup, validation, etc.)
+    await tx.signerToken.update({
+      where: { id: tokenId },
+      data: { usedAt: new Date() },
+    })
 
     for (const v of values) {
       await tx.fieldSubmission.upsert({
@@ -256,10 +282,10 @@ export async function submitSignature(
   const now = new Date()
   const userAccessToken = await getOwnerAccessToken(signer.document.uploadedBy)
 
-  await triggerNextSigningGroup(signer.documentId, signer.signingOrder)
+  const { triggeredNextGroup } = await triggerNextSigningGroup(signer.documentId, signer.signingOrder)
 
   const allRequiredSigners = await prisma.signer.findMany({
-    where: { documentId: signer.documentId, role: "SIGNER" },
+    where: { documentId: signer.documentId, role: { in: SIGNING_ROLES } },
     select: { status: true },
   })
   const allSigned = allRequiredSigners.every((s) => s.status === "SIGNED")
@@ -382,59 +408,18 @@ export async function submitSignature(
     } catch (err) {
       console.error("[submitSignature] Completed notification failed:", err)
     }
-  } else {
-    // Document still in progress — notify owner this signer is done, and send interim copy
-    let interimSignedBytes: Uint8Array | null = signedPdfBytes
-    let interimAuditBytes: Uint8Array | null = null
-
+  } else if (!triggeredNextGroup) {
+    // Document still in progress and no new group was just unlocked —
+    // notify owner this signer is done. (If a next group was just triggered,
+    // that group's invite email already signals progress; an extra interim
+    // notification here would be confusing.)
+    // Upload interim signed PDF for owner notification only (no audit PDF at interim stage)
+    let ownerSignedPath: string | undefined
     if (signedPdfBytes) {
       try {
-        const doc = await prisma.document.findUnique({
-          where: { id: signer.documentId },
-          select: {
-            documentHash: true,
-            signers: { select: { name: true, email: true, status: true }, orderBy: { order: "asc" } },
-          },
-        })
-        if (doc) {
-          const { createHash } = await import("crypto")
-          const signedDocumentHash = createHash("sha256").update(signedPdfBytes).digest("hex")
-          interimAuditBytes = await generateAuditPdf({
-            documentName,
-            documentHash: doc.documentHash,
-            signedDocumentHash,
-            ownerEmail,
-            ownerName,
-            signers: doc.signers,
-            auditEvents: await getAuditEvents(signer.documentId),
-            completedAt: now,
-          })
-        }
-      } catch (err) {
-        console.error("[submitSignature] Interim PDF generation failed:", err)
-        interimSignedBytes = null
-      }
-    }
-
-    // Each email event needs its own temp path — resolvePdfPaths deletes after download
-    let ownerSignedPath: string | undefined
-    let ownerAuditPath: string | undefined
-    let signerSignedPath: string | undefined
-    let signerAuditPath: string | undefined
-    if (interimSignedBytes) {
-      try {
-        ownerSignedPath = await uploadTempPdf(interimSignedBytes, "signed-interim-owner")
-        signerSignedPath = await uploadTempPdf(interimSignedBytes, "signed-interim-signer")
+        ownerSignedPath = await uploadTempPdf(signedPdfBytes, "signed-interim-owner")
       } catch (err) {
         console.error("[submitSignature] Interim signed PDF upload failed:", err)
-      }
-    }
-    if (interimAuditBytes) {
-      try {
-        ownerAuditPath = await uploadTempPdf(interimAuditBytes, "audit-interim-owner")
-        signerAuditPath = await uploadTempPdf(interimAuditBytes, "audit-interim-signer")
-      } catch (err) {
-        console.error("[submitSignature] Interim audit PDF upload failed:", err)
       }
     }
 
@@ -451,31 +436,11 @@ export async function submitSignature(
         documentUrl,
         signedAt: now,
         signedPdfPath: ownerSignedPath,
-        auditPdfPath: ownerAuditPath,
+        // auditPdfPath intentionally omitted — audit PDF only sent on completion
       },
     })
-
-    // Send interim copy to this signer
-    if (interimSignedBytes) {
-      try {
-        await inngest.send({
-          name: "email/signer-copy",
-          data: {
-            userAccessToken: userAccessToken ?? "",
-            ownerEmail,
-            ownerName,
-            signerName: signer.name,
-            signerEmail: signer.email,
-            documentName,
-            signedAt: now,
-            signedPdfPath: signerSignedPath,
-            auditPdfPath: signerAuditPath,
-          },
-        })
-      } catch (err) {
-        console.error("[submitSignature] Interim signer copy failed:", err)
-      }
-    }
+    // Signer copy intentionally omitted here — signers receive their copy only
+    // when the document is fully completed (avoids duplicate/confusing emails)
   }
 
   return { ok: true, data: undefined }

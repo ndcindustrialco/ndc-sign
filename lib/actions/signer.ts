@@ -5,7 +5,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateToken, tokenExpiresAt, signingUrl } from "@/lib/token"
-import { sendSigningInvite } from "@/lib/email/send"
+import { inngest } from "@/lib/inngest/client"
 import { getOwnerAccessToken } from "@/lib/email/get-owner-token"
 import type { ActionResult } from "./document"
 
@@ -163,21 +163,18 @@ export async function addSigner(
     const doc = await getDocumentWithOwner(documentId)
     const userAccessToken = await getOwnerAccessToken(session.user.id)
     if (doc && userAccessToken) {
-      sendSigningInvite({
-        userAccessToken,
-        senderEmail: doc.user.email,
-        senderName: doc.user.name ?? doc.user.email,
-        signerName: signer.name,
-        signerEmail: signer.email,
-        documentName: doc.name,
-        signingUrl: signingUrl(raw),
-        expiresAt,
-      }).catch((err: unknown) => {
-        console.error("[addSigner] sendSigningInvite failed", {
-          documentId,
+      await inngest.send({
+        name: "email/signing-invite",
+        data: {
+          userAccessToken,
+          senderEmail: doc.user.email,
+          senderName: doc.user.name ?? doc.user.email,
+          signerName: signer.name,
           signerEmail: signer.email,
-          error: err instanceof Error ? err.message : String(err),
-        })
+          documentName: doc.name,
+          signingUrl: signingUrl(raw),
+          expiresAt,
+        },
       })
     }
   }
