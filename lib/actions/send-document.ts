@@ -18,6 +18,7 @@ export type SendSignerInput = {
   name: string
   email: string
   signingOrder: number
+  partyIndex: number  // original row index in the editor (matches groupId "party:N")
 }
 
 export type SendDocumentInput = {
@@ -44,6 +45,7 @@ const SendSignerSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   email: z.email().trim(),
   signingOrder: z.number().int().min(1),
+  partyIndex: z.number().int().min(0),
 })
 
 const SendDocumentSchema = z.object({
@@ -71,7 +73,7 @@ export async function sendDocument(
     return { ok: false, error: validated.error.issues[0]?.message ?? "Invalid input" }
   }
 
-  const { documentId, signers, emailSubject, emailMessage, partyCount } = validated.data
+  const { documentId, signers, emailSubject, emailMessage } = validated.data
 
   // Verify ownership
   const doc = await prisma.document.findUnique({
@@ -139,13 +141,15 @@ export async function sendDocument(
     }
   })
 
-  // Map party:N groupId → real signerId for fields that were assigned to placeholder parties.
-  // createdSigners[i] corresponds to party index i (order they were submitted in the drawer).
-  for (let i = 0; i < Math.min(partyCount, createdSigners.length); i++) {
+  // Map party:N groupId → real signerId using each signer's partyIndex.
+  // partyIndex is the original row position in the editor, not the array index here,
+  // so this correctly handles cases where some party rows were skipped/left empty.
+  for (let i = 0; i < signers.length; i++) {
     const signer = createdSigners[i]
-    if (!signer) continue
+    const signerInput = signers[i]
+    if (!signer || !signerInput) continue
     await prisma.documentField.updateMany({
-      where: { documentId, groupId: `party:${i}` },
+      where: { documentId, groupId: `party:${signerInput.partyIndex}` },
       data: { signerId: signer.id, groupId: null },
     })
   }

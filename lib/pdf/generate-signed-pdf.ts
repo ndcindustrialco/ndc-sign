@@ -405,22 +405,28 @@ export async function generateSignedPdf(
   const signedBytes = await pdfDoc.save()
 
   // 8. Upload signed PDF to Supabase Storage
-  const signedPath = `${document.uploadedBy}/signed-${documentId}-${signerId}.pdf`
+  const signedPath = `${document.uploadedBy}/signed-${documentId}.pdf`
+  const signedBuffer = Buffer.from(signedBytes)
+
+  logger.warn("[signed-pdf] uploading", { documentId, signerId, signedPath, bytes: signedBuffer.length })
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(STORAGE_BUCKET)
-    .upload(signedPath, signedBytes, {
+    .upload(signedPath, signedBuffer, {
       contentType: "application/pdf",
       upsert: true,
     })
 
   if (uploadError) {
+    logger.error("[signed-pdf] upload failed", { documentId, signedPath, error: uploadError.message })
     throw new Error(`Failed to upload signed PDF: ${uploadError.message}`)
   }
 
-  // 9. Check if all SIGNER-role signers have signed
+  logger.warn("[signed-pdf] upload ok", { documentId, signedPath })
+
+  // 9. Check if all signers have signed
   const allSignersSigned = await prisma.signer.findMany({
-    where: { documentId, role: "SIGNER" },
+    where: { documentId },
     select: { status: true },
   })
   const allDone = allSignersSigned.every((s) => s.status === "SIGNED")
@@ -435,6 +441,8 @@ export async function generateSignedPdf(
       ...(allDone ? { status: "COMPLETED" as const } : {}),
     },
   })
+
+  logger.warn("[signed-pdf] document updated", { documentId, signedPath, allDone })
 
   return { signedBytes, signedPath }
 }

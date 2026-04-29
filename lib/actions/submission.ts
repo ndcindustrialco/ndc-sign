@@ -9,6 +9,7 @@ import { createAuditEvent, getAuditEvents } from "./audit"
 import { inngest } from "@/lib/inngest/client"
 import { getOwnerAccessToken } from "@/lib/email/get-owner-token"
 import { uploadTempPdf } from "@/lib/email/pdf-storage"
+import { logger } from "@/lib/logger"
 import type { ActionResult } from "./document"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
@@ -143,7 +144,7 @@ export async function submitSignature(
         select: {
           name: true,
           uploadedBy: true,
-          fields: { select: { id: true, required: true, type: true, label: true } },
+          fields: { where: { signerId }, select: { id: true, required: true, type: true, label: true } },
           user: { select: { name: true, email: true } },
         },
       },
@@ -157,7 +158,7 @@ export async function submitSignature(
 
   const submittedFieldIds = new Set(values.map((v) => v.fieldId))
   const missingRequired = signer.document.fields.filter(
-    (f) => f.required && !submittedFieldIds.has(f.id)
+    (f) => f.type !== "CHECKBOX" && f.required && !submittedFieldIds.has(f.id)
   )
   if (missingRequired.length > 0) {
     return { ok: false, error: `${missingRequired.length} required field(s) are missing` }
@@ -230,8 +231,12 @@ export async function submitSignature(
   try {
     const result = await generateSignedPdf(signer.documentId, signerId)
     signedPdfBytes = result.signedBytes
-  } catch {
-    // continue without PDF
+  } catch (err) {
+    logger.error("[submitSignature] generateSignedPdf failed", {
+      documentId: signer.documentId,
+      signerId,
+      error: err instanceof Error ? err.message : String(err),
+    })
   }
 
   const ownerEmail = signer.document.user.email
@@ -426,9 +431,18 @@ export async function submitSignature(
         })
 
         // Send copy to every signer via Inngest (with retry)
+        // Each event must have its own temp path — resolvePdfPaths deletes the file after
+        // downloading, so sharing a path across events means only the first event gets the PDF.
         const signedSigners = completedDoc.signers.filter((s) => s.status === "SIGNED")
         for (const s of signedSigners) {
-          // Each signer event needs its own copy of paths (Inngest downloads once per event)
+          let signerSignedPath: string | undefined
+          let signerAuditPath: string | undefined
+          try {
+            if (signedPdfBytes) signerSignedPath = await uploadTempPdf(signedPdfBytes, "signer-copy-signed")
+            if (auditPdfBytes) signerAuditPath = await uploadTempPdf(auditPdfBytes, "signer-copy-audit")
+          } catch (err) {
+            console.error("[submitSignature] signer-copy upload failed:", err)
+          }
           await inngest.send({
             name: "email/signer-copy",
             data: {
@@ -439,8 +453,8 @@ export async function submitSignature(
               signerEmail: s.email,
               documentName,
               signedAt: now,
-              signedPdfPath: completedSignedPath,
-              auditPdfPath: completedAuditPath,
+              signedPdfPath: signerSignedPath,
+              auditPdfPath: signerAuditPath,
             },
           })
         }

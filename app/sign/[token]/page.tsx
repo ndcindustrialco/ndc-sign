@@ -121,20 +121,7 @@ export default async function SignPage({ params }: PageProps) {
         style={{ borderColor: "var(--border, #E5E7EB)" }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          <div className="flex items-center gap-2 shrink-0">
-            <div
-              className="flex h-6 w-6 items-center justify-center rounded-md"
-              style={{ background: "var(--primary, #0F1059)" }}
-            >
-              <svg
-                viewBox="0 0 20 20"
-                className="h-3.5 w-3.5"
-                fill="white"
-                aria-hidden
-              >
-                <polygon points="4,2 16,2 18,10 16,18 4,18 2,10" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2 shrink-0">  
             <span
               className="text-sm font-bold tracking-widest uppercase"
               style={{ color: "var(--primary, #0F1059)" }}

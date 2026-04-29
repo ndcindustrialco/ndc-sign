@@ -475,10 +475,14 @@ export default function SendDrawer({
  if (err) { setError(err); return }
  setError(null)
 
- const signers = filledRows.map((row, idx) => ({
+ const signers = rows
+ .map((row, rowIdx) => ({ row, partyIndex: rowIdx }))
+ .filter(({ row }) => row.person !== null)
+ .map(({ row, partyIndex }, idx) => ({
  name: row.person!.name,
  email: row.person!.email,
  signingOrder: mode === "sequential" ? idx + 1 : 1,
+ partyIndex,
  }))
 
  startTransition(async () => {

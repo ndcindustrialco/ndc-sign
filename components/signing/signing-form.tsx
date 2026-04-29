@@ -70,6 +70,7 @@ export default function SigningForm({
  function validate() {
  const missing = new Set<string>()
  for (const field of fields) {
+ if (field.type === "CHECKBOX") continue
  if (field.required && !values[field.id]) missing.add(field.id)
  }
  setErrors(missing)
