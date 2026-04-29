@@ -333,8 +333,40 @@ export async function generateSignedPdf(
           rotate: degrees(d.rotateDeg),
         })
       }
+    } else if (field.type === "CHECKBOX") {
+      // Draw a visual checkmark centered in the field box.
+      const fontSize = Math.max(8, Math.min(h * 0.75, 20))
+      const offsetU = (w - fontSize * 0.6) / 2
+      const offsetV = (h - fontSize) / 2
+      const d = composeDraw(frame, offsetU, offsetV, fontSize, fontSize, 0)
+      page.drawText("✓", {
+        x: d.x,
+        y: d.y,
+        size: fontSize,
+        font: helvetica,
+        color: rgb(0.05, 0.05, 0.05),
+        rotate: degrees(d.rotateDeg),
+      })
+    } else if (field.type === "FILE") {
+      // Draw the filename (stored as JSON prefix before the base64 payload).
+      const fileName = field.value.startsWith("file:")
+        ? field.value.split("|")[0].slice(5)
+        : "[File attached]"
+      const fontSize = Math.max(8, Math.min(12, h * 0.5))
+      const offsetU = 2
+      const offsetV = (h - fontSize) / 2
+      const d = composeDraw(frame, offsetU, offsetV, w - 4, fontSize, 0)
+      page.drawText(fileName.slice(0, 80), {
+        x: d.x,
+        y: d.y,
+        size: fontSize,
+        font: helvetica,
+        color: rgb(0.05, 0.05, 0.05),
+        maxWidth: w - 4,
+        rotate: degrees(d.rotateDeg),
+      })
     } else {
-      // TEXT or DATE — draw as text, vertically centered.
+      // TEXT, DATE, NUMBER, PHONE, CELLS, RADIO, SELECT — draw as text, vertically centered.
       const fontSize = Math.max(8, Math.min(12, h * 0.5))
       const text = field.value.slice(0, 100) // safety clamp
 

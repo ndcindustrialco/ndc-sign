@@ -464,6 +464,10 @@ export default function PdfViewer({
  setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, signerId } : f); fieldsRef.current = next; return next })
  }
 
+ const handleOptionsChange = (id: string, options: string[]) => {
+ setFields((prev) => { const next = prev.map((f) => f.id === id ? { ...f, options } : f); fieldsRef.current = next; return next })
+ }
+
  const selectedField = selectedId ? (fields.find((f) => f.id === selectedId) ?? null) : null
  const cursor = selectedType ? "cursor-crosshair" : "cursor-default"
 
@@ -479,6 +483,7 @@ export default function PdfViewer({
  onLabelChange={handleLabelChange}
  onRequiredChange={handleRequiredChange}
  onSignerChange={handleFieldSignerChange}
+ onOptionsChange={handleOptionsChange}
  onDelete={handleDelete}
  onClose={() => { setSelectedId(null); setMobileManualOpen(false) }}
  />

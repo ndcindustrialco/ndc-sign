@@ -37,6 +37,7 @@ interface Props {
  onLabelChange: (id: string, label: string | null) => void
  onRequiredChange: (id: string, required: boolean) => void
  onSignerChange: (id: string, signerId: string | null) => void
+ onOptionsChange: (id: string, options: string[]) => void
  onDelete: (id: string) => void
  onClose: () => void
 }
@@ -47,11 +48,15 @@ export default function FieldPropertiesPanel({
  onLabelChange,
  onRequiredChange,
  onSignerChange,
+ onOptionsChange,
  onDelete,
  onClose,
 }: Props) {
  const [label, setLabel] = useState(field.label ?? "")
+ const [newOption, setNewOption] = useState("")
  const [, startTransition] = useTransition()
+
+ const hasOptions = field.type === "RADIO" || field.type === "SELECT"
 
  // Keep local label in sync when field selection changes
  // (parent re-mounts this component when selectedId changes)
@@ -70,6 +75,24 @@ export default function FieldPropertiesPanel({
  startTransition(async () => {
  await updateField({ id: field.id, required: next })
  })
+ }
+
+ function commitOptions(options: string[]) {
+  onOptionsChange(field.id, options)
+  startTransition(async () => {
+   await updateField({ id: field.id, options })
+  })
+ }
+
+ function addOption() {
+  const trimmed = newOption.trim()
+  if (!trimmed || field.options.includes(trimmed)) return
+  commitOptions([...field.options, trimmed])
+  setNewOption("")
+ }
+
+ function removeOption(opt: string) {
+  commitOptions(field.options.filter((o) => o !== opt))
  }
 
  function handleSignerChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -174,7 +197,58 @@ export default function FieldPropertiesPanel({
  </div>
  )}
 
- {/* Field position info (read-only) */}
+ {/* Options (RADIO / SELECT only) */}
+  {hasOptions && (
+   <div>
+    <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+     ตัวเลือก Options
+    </label>
+
+    {/* Existing options */}
+    <div className="mb-2 flex flex-col gap-1">
+     {field.options.length === 0 && (
+      <p className="text-xs text-zinc-400">ยังไม่มีตัวเลือก No options yet</p>
+     )}
+     {field.options.map((opt) => (
+      <div key={opt} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5">
+       <span className="flex-1 truncate text-sm text-zinc-700">{opt}</span>
+       <button
+        type="button"
+        onClick={() => removeOption(opt)}
+        className="shrink-0 text-zinc-400 hover:text-red-500"
+        aria-label={`Remove ${opt}`}
+       >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+       </button>
+      </div>
+     ))}
+    </div>
+
+    {/* Add new option */}
+    <div className="flex gap-1.5">
+     <input
+      type="text"
+      value={newOption}
+      onChange={(e) => setNewOption(e.target.value)}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption() } }}
+      placeholder="เพิ่มตัวเลือก Add option"
+      className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none"
+     />
+     <button
+      type="button"
+      onClick={addOption}
+      disabled={!newOption.trim()}
+      className="shrink-0 rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-40"
+     >
+      เพิ่ม Add
+     </button>
+    </div>
+   </div>
+  )}
+
+  {/* Field position info (read-only) */}
  <div className="rounded-lg bg-zinc-50 px-3 py-2.5">
  <p className="mb-1.5 text-xs font-medium text-zinc-400">ตำแหน่ง Position</p>
  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-500">

@@ -54,6 +54,7 @@ export default async function SignPage({ params }: PageProps) {
           name: true,
           storagePath: true,
           fields: {
+            where: { signerId: verify.signerId },
             select: {
               id: true,
               type: true,

@@ -269,7 +269,7 @@ export default function FieldInput({
                 />
               </svg>
               <span className="flex-1 truncate text-sm text-zinc-600">
-                แนบไฟล์แล้ว File attached
+                {value?.startsWith("file:") ? value.split("|")[0].slice(5) : "แนบไฟล์แล้ว File attached"}
               </span>
               <button
                 type="button"
@@ -303,7 +303,7 @@ export default function FieldInput({
                   if (!file) return;
                   const reader = new FileReader();
                   reader.onload = () =>
-                    onChange(fieldId, reader.result as string);
+                    onChange(fieldId, `file:${file.name}|${reader.result as string}`);
                   reader.readAsDataURL(file);
                 }}
               />

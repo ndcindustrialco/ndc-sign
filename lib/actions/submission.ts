@@ -167,6 +167,13 @@ export async function submitSignature(
   const invalidField = values.find((v) => !validFieldIds.has(v.fieldId))
   if (invalidField) return { ok: false, error: "Invalid field reference" }
 
+  const fieldTypeMap = new Map(signer.document.fields.map((f) => [f.id, f.type]))
+  const phoneRegex = /^[0-9+\-\s().]{7,20}$/
+  const invalidPhone = values.find(
+    (v) => fieldTypeMap.get(v.fieldId) === "PHONE" && !phoneRegex.test(v.value)
+  )
+  if (invalidPhone) return { ok: false, error: "Invalid phone number format" }
+
   // Use interactive transaction with optimistic lock to prevent double-submit
   const txResult = await prisma.$transaction(async (tx) => {
     // Re-check status inside transaction to prevent race condition
