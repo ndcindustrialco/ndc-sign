@@ -293,6 +293,10 @@ export default function PdfViewer({
  const isPlaceholder = selectedSignerId?.startsWith("placeholder-") ?? false
  const dbSignerId = isPlaceholder ? undefined : (selectedSignerId ?? undefined)
  const displaySignerId = selectedSignerId ?? null
+ const partyIndex = isPlaceholder
+  ? signers.findIndex((s) => s.id === selectedSignerId)
+  : -1
+ const partyGroupId = partyIndex >= 0 ? `party:${partyIndex}` : undefined
 
  const optimistic: FieldItem = {
  id: `optimistic-${Date.now()}`,
@@ -301,7 +305,7 @@ export default function PdfViewer({
  page: pageNum,
  x: fx, y: fy, width, height,
  label: null, required: true,
- options: [], groupId: null,
+ options: [], groupId: partyGroupId ?? null,
  }
 
  setFields((prev) => { const next = [...prev, optimistic]; fieldsRef.current = next; return next })
@@ -315,6 +319,7 @@ export default function PdfViewer({
  x: fx, y: fy, width, height,
  required: true,
  options: [],
+ groupId: partyGroupId,
  })
  if (result.ok) {
  const fieldWithColor: FieldItem = { ...result.data, signerId: displaySignerId }
@@ -353,6 +358,10 @@ export default function PdfViewer({
  const isPlaceholder = source.signerId?.startsWith("placeholder-") ?? false
  const dbSignerId = source.signerId && !isPlaceholder ? source.signerId : undefined
  const displaySignerId = source.signerId
+ const srcPartyIndex = isPlaceholder
+  ? signers.findIndex((s) => s.id === source.signerId)
+  : -1
+ const dupPartyGroupId = srcPartyIndex >= 0 ? `party:${srcPartyIndex}` : (source.groupId ?? undefined)
 
  const optimistic: FieldItem = {
  id: `optimistic-${Date.now()}`,
@@ -363,7 +372,7 @@ export default function PdfViewer({
  label: source.label,
  required: source.required,
  options: [...source.options],
- groupId: source.groupId,
+ groupId: dupPartyGroupId ?? null,
  }
 
  setFields((prev) => { const next = [...prev, optimistic]; fieldsRef.current = next; return next })
@@ -379,7 +388,7 @@ export default function PdfViewer({
  label: source.label ?? undefined,
  required: source.required,
  options: [...source.options],
- groupId: source.groupId ?? undefined,
+ groupId: dupPartyGroupId,
  })
  if (result.ok) {
  const fieldWithColor: FieldItem = { ...result.data, signerId: displaySignerId }

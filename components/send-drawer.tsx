@@ -487,6 +487,7 @@ export default function SendDrawer({
  signers,
  emailSubject: subject.trim(),
  emailMessage: message.trim(),
+ partyCount: filledRows.length,
  })
  if (!result.ok) {
  setError(result.error)

@@ -25,6 +25,7 @@ export type SendDocumentInput = {
   signers: SendSignerInput[]
   emailSubject: string
   emailMessage: string
+  partyCount: number
 }
 
 export type SentSigner = {
@@ -50,6 +51,7 @@ const SendDocumentSchema = z.object({
   signers: z.array(SendSignerSchema).min(1),
   emailSubject: z.string().min(1).max(200).trim(),
   emailMessage: z.string().max(2000).trim(),
+  partyCount: z.number().int().min(1),
 })
 
 // ---------------------------------------------------------------------------
@@ -69,7 +71,7 @@ export async function sendDocument(
     return { ok: false, error: validated.error.issues[0]?.message ?? "Invalid input" }
   }
 
-  const { documentId, signers, emailSubject, emailMessage } = validated.data
+  const { documentId, signers, emailSubject, emailMessage, partyCount } = validated.data
 
   // Verify ownership
   const doc = await prisma.document.findUnique({
@@ -136,6 +138,17 @@ export async function sendDocument(
       })
     }
   })
+
+  // Map party:N groupId → real signerId for fields that were assigned to placeholder parties.
+  // createdSigners[i] corresponds to party index i (order they were submitted in the drawer).
+  for (let i = 0; i < Math.min(partyCount, createdSigners.length); i++) {
+    const signer = createdSigners[i]
+    if (!signer) continue
+    await prisma.documentField.updateMany({
+      where: { documentId, groupId: `party:${i}` },
+      data: { signerId: signer.id, groupId: null },
+    })
+  }
 
   // Update document status to PENDING
   await prisma.document.update({
