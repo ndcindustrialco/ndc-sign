@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react"
 
-type Tab = "draw" | "type"
+type Tab = "draw" | "type" | "upload"
 
 interface SignaturePadProps {
  value: string | null
@@ -31,8 +31,11 @@ export default function SignaturePad({
  const [tab, setTab] = useState<Tab>("draw")
  const [typedText, setTypedText] = useState("")
  const [selectedFont, setSelectedFont] = useState(FONTS[0]!.value)
+ const [fontSize, setFontSize] = useState(48)
  const [usingSaved, setUsingSaved] = useState(false)
  const [drawIsEmpty, setDrawIsEmpty] = useState(true)
+ const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+ const fileInputRef = useRef<HTMLInputElement>(null)
 
  const canvasRef = useRef<HTMLCanvasElement>(null)
  const typeCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -66,12 +69,12 @@ export default function SignaturePad({
  onChangeRef.current(null)
  return
  }
- ctx.font = `48px ${selectedFont}`
+ ctx.font = `${fontSize}px ${selectedFont}`
  ctx.fillStyle = "#1a1a1a"
  ctx.textBaseline = "middle"
  ctx.fillText(typedText, 20, canvas.height / 2)
  onChangeRef.current(trimCanvasToDataUrl(canvas))
- }, [typedText, selectedFont, tab])
+ }, [typedText, selectedFont, fontSize, tab])
 
  // Trim transparent padding around ink — returns a PNG data URL
  // sized to the actual signature bounds (preserves aspect ratio downstream).
@@ -167,19 +170,39 @@ export default function SignaturePad({
  onChangeRef.current(null)
  }
 
+ function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+ const file = e.target.files?.[0]
+ if (!file) return
+ const reader = new FileReader()
+ reader.onload = (ev) => {
+ const dataUrl = ev.target?.result as string
+ setUploadedImage(dataUrl)
+ onChangeRef.current(dataUrl)
+ }
+ reader.readAsDataURL(file)
+ }
+
+ function clearUpload() {
+ setUploadedImage(null)
+ onChangeRef.current(null)
+ if (fileInputRef.current) fileInputRef.current.value = ""
+ }
+
  function switchTab(t: Tab) {
  setTab(t)
  setUsingSaved(false)
  onChange(null)
  if (t === "draw") {
- // clear canvas on next tick after render
  setTimeout(() => {
  const canvas = canvasRef.current
  if (canvas) canvas.getContext("2d")!.clearRect(0, 0, canvas.width, canvas.height)
  setDrawIsEmpty(true)
  }, 0)
- } else {
+ } else if (t === "type") {
  setTypedText("")
+ } else {
+ setUploadedImage(null)
+ if (fileInputRef.current) fileInputRef.current.value = ""
  }
  }
 
@@ -213,7 +236,7 @@ export default function SignaturePad({
  <div className="flex flex-col gap-2">
  {/* Tab bar */}
  <div className="flex gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
- {(["draw", "type"] as Tab[]).map((t) => (
+ {(["draw", "type", "upload"] as Tab[]).map((t) => (
  <button
  key={t}
  type="button"
@@ -224,7 +247,7 @@ export default function SignaturePad({
  : "text-zinc-500 hover:text-zinc-700"
  }`}
  >
- {t === "draw" ? "✍️ วาด Draw" : "T พิมพ์ Type"}
+ {t === "draw" ? "✍️ วาด Draw" : t === "type" ? "T พิมพ์ Type" : "🖼️ อัปโหลด Upload"}
  </button>
  ))}
  </div>
@@ -277,7 +300,7 @@ export default function SignaturePad({
  {/* Live font preview */}
  <div
  className="h-18 overflow-hidden px-3 pb-2"
- style={{ fontFamily: selectedFont, fontSize: "36px", color: "#1a1a1a", lineHeight: "70px" }}
+ style={{ fontFamily: selectedFont, fontSize: `${Math.round(fontSize * 0.75)}px`, color: "#1a1a1a", lineHeight: "70px" }}
  >
  {typedText || <span style={{ fontSize: "14px", color: "#a1a1aa", fontFamily: "inherit" }}>ตัวอย่าง Preview</span>}
  </div>
@@ -302,10 +325,79 @@ export default function SignaturePad({
  </button>
  ))}
  </div>
+ {/* Font size slider */}
+ <div className="flex items-center gap-3">
+ <span className="text-xs text-zinc-500 shrink-0">ขนาด Size</span>
+ <input
+ type="range"
+ min={24}
+ max={96}
+ step={4}
+ value={fontSize}
+ onChange={(e) => setFontSize(Number(e.target.value))}
+ className="flex-1 accent-zinc-900"
+ />
+ <span className="text-xs text-zinc-500 w-8 text-right">{fontSize}px</span>
+ </div>
  <div className="flex items-center justify-between">
  <button type="button" onClick={() => setTypedText("")} disabled={!typedText || disabled} className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-30">
  ล้าง Clear
  </button>
+ {savedSignature && (
+ <button type="button" onClick={useSaved} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+ ใช้ลายเซ็นที่บันทึกไว้ Use saved
+ </button>
+ )}
+ </div>
+ </>
+ )}
+
+ {/* ---- Upload ---- */}
+ {tab === "upload" && (
+ <>
+ <div className="rounded-lg border-2 border-dashed border-zinc-300 bg-white">
+ {uploadedImage ? (
+ // eslint-disable-next-line @next/next/no-img-element
+ <img src={uploadedImage} alt="Uploaded signature" className="h-30 w-full object-contain p-2" />
+ ) : (
+ <button
+ type="button"
+ disabled={disabled}
+ onClick={() => fileInputRef.current?.click()}
+ className="flex h-30 w-full flex-col items-center justify-center gap-1 text-zinc-400 hover:text-zinc-600 disabled:cursor-default"
+ >
+ <span className="text-2xl">🖼️</span>
+ <span className="text-xs">คลิกเพื่อเลือกรูปภาพ Click to select image</span>
+ <span className="text-[10px] text-zinc-300">PNG, JPG, GIF, WebP</span>
+ </button>
+ )}
+ </div>
+ <input
+ ref={fileInputRef}
+ type="file"
+ accept="image/*"
+ className="hidden"
+ onChange={handleImageUpload}
+ />
+ <div className="flex items-center justify-between">
+ <button
+ type="button"
+ onClick={clearUpload}
+ disabled={!uploadedImage || disabled}
+ className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-30"
+ >
+ ล้าง Clear
+ </button>
+ {!uploadedImage && (
+ <button
+ type="button"
+ disabled={disabled}
+ onClick={() => fileInputRef.current?.click()}
+ className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-30"
+ >
+ เลือกไฟล์ Choose file
+ </button>
+ )}
  {savedSignature && (
  <button type="button" onClick={useSaved} className="text-xs font-medium text-blue-600 hover:text-blue-700">
  ใช้ลายเซ็นที่บันทึกไว้ Use saved
