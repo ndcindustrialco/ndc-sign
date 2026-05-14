@@ -1,8 +1,9 @@
-import { PDFDocument, rgb, StandardFonts, degrees, LineCapStyle } from "pdf-lib"
+import { PDFDocument, rgb, degrees, LineCapStyle } from "pdf-lib"
 import { createHash } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase"
 import { logger } from "@/lib/logger"
+import { embedThaiFont, sanitizeTextForPDF } from "./embed-fonts"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -242,7 +243,8 @@ export async function generateSignedPdf(
   // 3. Load PDF with pdf-lib
   const pdfDoc = await PDFDocument.load(originalBytes)
   const pages = pdfDoc.getPages()
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fonts = await embedThaiFont(pdfDoc)
+  const helvetica = fonts.regular
 
   // 4. Collect all field submissions across all signers (build flat list)
   const allFields: FieldWithSubmission[] = []
@@ -359,7 +361,7 @@ export async function generateSignedPdf(
       const offsetU = 2
       const offsetV = (h - fontSize) / 2
       const d = composeDraw(frame, offsetU, offsetV, w - 4, fontSize, 0)
-      page.drawText(fileName.slice(0, 80), {
+      page.drawText(sanitizeTextForPDF(fileName.slice(0, 80)), {
         x: d.x,
         y: d.y,
         size: fontSize,
@@ -371,7 +373,7 @@ export async function generateSignedPdf(
     } else {
       // TEXT, DATE, NUMBER, PHONE, CELLS, RADIO, SELECT — draw as text, vertically centered.
       const fontSize = Math.max(8, Math.min(12, h * 0.5))
-      const text = field.value.slice(0, 100) // safety clamp
+      const text = sanitizeTextForPDF(field.value.slice(0, 100)) // safety clamp + sanitize
 
       // Local baseline: TL offset (u=2, v=h - (h-fontSize)/2 - fontSize*0.2).
       // pdf-lib's drawText y is the baseline in the *source* coordinate; we

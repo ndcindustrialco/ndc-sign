@@ -1,5 +1,6 @@
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib"
+import { PDFDocument, rgb, PDFFont, PDFPage } from "pdf-lib"
 import { createHash } from "crypto"
+import { embedThaiFont, sanitizeTextForPDF } from "./embed-fonts"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,7 +132,8 @@ function drawText(
 ) {
   const font = opts.font ?? s.regular
   const [r, g, b] = opts.color ?? GRAY_DARK
-  s.page.drawText(text, {
+  const sanitized = sanitizeTextForPDF(text)
+  s.page.drawText(sanitized, {
     x: opts.x ?? MARGIN,
     y: s.y,
     font,
@@ -156,7 +158,8 @@ function drawWrappedText(
   const font = opts.font ?? s.regular
   const maxW = opts.maxW ?? CONTENT_W
   const x = opts.x ?? MARGIN
-  const lines = wrapText(text, font, opts.size, maxW)
+  const sanitized = sanitizeTextForPDF(text)
+  const lines = wrapText(sanitized, font, opts.size, maxW)
   for (const line of lines) {
     ensureSpace(s, opts.size + 8)
     drawText(s, line, { ...opts, font, x })
@@ -183,7 +186,7 @@ function drawLabelValue(
   const vs = opts.valueSize ?? 9
   ensureSpace(s, ls + vs + 14)
   drawText(s, label, { font: s.bold, size: ls, color: GRAY_MID, lineGap: 2 })
-  drawWrappedText(s, value || "—", { font: s.regular, size: vs, color: GRAY_DARK })
+  drawWrappedText(s, sanitizeTextForPDF(value) || "—", { font: s.regular, size: vs, color: GRAY_DARK })
   s.y -= opts.gap ?? 4
 }
 
@@ -202,9 +205,10 @@ export async function generateAuditPdf(opts: {
   completedAt: Date
 }): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create()
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-  const regular = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const mono = await pdfDoc.embedFont(StandardFonts.Courier)
+  const fonts = await embedThaiFont(pdfDoc)
+  const bold = fonts.bold
+  const regular = fonts.regular
+  const mono = fonts.mono
 
   const s: State = {
     doc: pdfDoc,
@@ -265,7 +269,7 @@ export async function generateAuditPdf(opts: {
     const statusColor = signer.status === "SIGNED" ? GREEN : signer.status === "DECLINED" ? RED : GRAY_LIGHT
     const statusLabel = signer.status === "SIGNED" ? "Signed" : signer.status === "DECLINED" ? "Declined" : signer.status
 
-    drawText(s, signer.name, { font: bold, size: 12, color: GRAY_DARK })
+    drawText(s, sanitizeTextForPDF(signer.name), { font: bold, size: 12, color: GRAY_DARK })
 
     // Status right-aligned on same row — draw it, then adjust y back
     const statusW = bold.widthOfTextAtSize(statusLabel, 10)
